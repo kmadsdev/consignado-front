@@ -1,6 +1,9 @@
 // Every user-visible string of the API area: what the viewer reads when a call fails.
-// Calm, specific, short. English now; pt-BR can be added later.
-export const E = {
+// Calm, specific, short. English here; the pt-BR table is in strings.pt.ts.
+import { pick } from '../i18n/lang.ts'
+import { ptBR } from './strings.pt.ts'
+
+export const en = {
   network: 'The network did not answer. Check your connection, then try again.',
   unauthorized: 'Sign in to use this function.',
   invalidToken: 'Your sign-in is not valid any more. Sign in again.',
@@ -34,3 +37,5 @@ export const E = {
     noTrace: 'the gateway sent no trace for this call',
   },
 }
+
+export const E = pick(en, ptBR)

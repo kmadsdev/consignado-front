@@ -1,9 +1,11 @@
-// Every user-visible string of the signed-in pages. English now; pt-BR can be added later.
+// Every user-visible string of the signed-in pages, in English. The pt-BR table is in strings.pt.ts.
 import type { ContractStatus, EngineState, HostKind } from '../api/types'
+import { pick } from '../i18n/lang.ts'
+import { ptBR } from './strings.pt.ts'
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
-export const T = {
+export const en = {
   common: {
     copy: 'Copy',
     copied: 'Copied',
@@ -19,6 +21,7 @@ export const T = {
     months: (n: number) => plural(n, 'month', 'months'),
     yes: 'Yes',
     no: 'No',
+    justNow: 'just now',
   },
   host: { functions: 'Azure Functions', aks: 'Kubernetes (AKS)' } as Record<HostKind, string>,
   hostShort: { functions: 'Functions', aks: 'AKS' } as Record<HostKind, string>,
@@ -187,7 +190,7 @@ export const T = {
     saved: (id: string) => `Saved as ${id}. It is in the Simulations table for 2 days.`,
     createContract: 'Create contract',
     noContractReason: 'The installment must fit the margin, and your account must be active.',
-    errPrincipal: 'Enter an amount of R$ 500,00 or more.',
+    errPrincipal: 'Enter an amount of R$500.00 or more.',
     errMonths: (max: number) => `Enter a whole number from 6 to ${max}.`,
   },
   income: {
@@ -215,6 +218,7 @@ export const T = {
     company: 'Company',
     linkedin: 'LinkedIn profile URL',
     linkedinHint: 'Example: https://www.linkedin.com/in/your-name',
+    linkedinPlaceholder: 'https://www.linkedin.com/in/your-name',
     consentTitle: 'Consent and check',
     consent: 'I agree that the owner stores this data to operate the demo, as the',
     privacyLink: 'privacy notice says',
@@ -421,7 +425,7 @@ export const T = {
     findSnapshot: 'Find in the snapshot',
     noSnapshot: 'The snapshot is empty',
     noSnapshotText: 'No customer is in the snapshot.',
-    errPrincipal: 'Enter an amount from R$ 500,00 to R$ 500.000,00.',
+    errPrincipal: 'Enter an amount from R$500.00 to R$500,000.00.',
     errMonths: 'Enter a whole number from 6 to 96.',
     errRate: 'Enter a rate of more than 0 and not more than 5.',
     errIncome: 'Enter an income of more than zero.',
@@ -439,3 +443,5 @@ export const T = {
     ctaSigned: 'Open the Kubernetes host',
   },
 }
+
+export const T = pick(en, ptBR)
