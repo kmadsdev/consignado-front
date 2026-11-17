@@ -44,7 +44,8 @@ function toError(status: number, body: ApiProblem | null, trace: RequestTrace | 
   let message: string
   if (status === 401) message = code === 'invalid-token' ? E.invalidToken : E.unauthorized
   else if (status === 403) message = code === 'blocked' ? E.blocked : code === 'no-session' ? E.noSession : code === 'bot-check-failed' ? E.botCheck : E.forbidden
-  else if (status === 404) message = code && code !== 'not-found' && text ? text : E.notFound
+  // A 404 with no JSON body did not come from the gateway: the gateway is not behind this path.
+  else if (status === 404) message = !body ? E.badGateway : code && code !== 'not-found' && text ? text : E.notFound
   else if (status === 409) {
     if (code === 'paused') message = E.paused
     else if (code === 'held') message = E.held
