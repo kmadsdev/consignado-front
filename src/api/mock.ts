@@ -364,6 +364,35 @@ function buildTrace(host: HostKind, opts: TraceOptions): RequestTrace {
   }
   return { host, cold, totalMs: total, events }
 }
+/** A warm preview on the pods of an open window: the stages that the gateway sends for host `aks`, 300 to 900 ms. */
+function aksPreviewTrace(label: string, opts: Partial<TraceOptions>): RequestTrace {
+  const parts: Array<[string, number, string]> = [
+    ['request', rnd(4, 9), label],
+    ['edge', rnd(11, 26), 'Cloudflare edge: WAF rules passed'],
+    ['gateway', rnd(30, 80), 'gateway function routed the call to the cluster'],
+    ['identity', rnd(18, 50), 'Entra ID token is valid'],
+    ['quota', rnd(6, 18), 'access window is active'],
+    ['keyvault', rnd(8, 21), 'secrets read from the cache'],
+    ['load-balancer', rnd(210, 640), 'internal Load Balancer sent it to pod consignado-api-7d9f8c-x2kqp'],
+    ['response', rnd(8, 20), '200'],
+  ]
+  const events: LifecycleEvent[] = []
+  let t = Date.now(), total = 0
+  for (const [stage, ms, detail] of parts) {
+    const failed = opts.errorAt === stage
+    events.push({ ts: iso(t), stage, status: failed ? 'error' : 'done', ms, detail: failed ? opts.errorDetail ?? 'failed' : detail })
+    t += ms; total += ms
+  }
+  return { host: 'aks', cold: false, totalMs: total, events }
+}
+/** The ready window of the signed-in user. The gateway answers 403 `no-session` when there is none. */
+function openWindowOfUser(): SessionRec {
+  const u = requireUser()
+  const now = Date.now()
+  const s = liveSessions(now).find((x) => x.userId === u.id && now >= x.requestedAt + COMPRESSED_START_MS)
+  if (!s) throw new ApiError(403, 'This access window has ended.', undefined, 'no-session')
+  return s
+}
 function record(trace: RequestTrace) {
   db.last[trace.host] = { ms: trace.totalMs, at: Date.now(), cold: trace.cold }
 }
@@ -585,11 +614,14 @@ export function contractAction(host: HostKind, id: string, action: ContractActio
 }
 
 // ---- guest calls (stateless, no database) ------------------------------------------------
-export async function previewSimulation(input: PreviewInput): Promise<ApiResult<PreviewResult>> {
+export async function previewSimulation(input: PreviewInput, host: HostKind = 'functions'): Promise<ApiResult<PreviewResult>> {
   const bad = !(input.principal >= 500) || !(input.termMonths >= 6 && input.termMonths <= 96) || !(input.monthlyInterestRate > 0 && input.monthlyInterestRate <= 0.05) || !(input.monthlyIncome > 0)
-  const label = 'POST /api/fn/api/v1/simulations/preview'
-  const trace = buildTrace('functions', { label, database: false, ...(bad ? { errorAt: 'response', errorDetail: '422: the values are out of range' } : {}) })
+  const label = `POST /api/${host === 'functions' ? 'fn' : 'aks'}/api/v1/simulations/preview`
+  const session = host === 'aks' ? openWindowOfUser() : null
+  const failAt = bad ? { errorAt: 'response', errorDetail: '422: the values are out of range' } : {}
+  const trace = host === 'aks' ? aksPreviewTrace(label, failAt) : buildTrace('functions', { label, database: false, ...failAt })
   await sleep(trace.totalMs)
+  if (session) session.requestCount += 1
   record(trace)
   persist()
   if (bad) throw new ApiError(422, 'The values are out of range. Amount from R$ 500,00, term 6 to 96 months, rate up to 5% per month.', trace, undefined, undefined, label)

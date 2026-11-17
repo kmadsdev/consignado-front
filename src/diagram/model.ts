@@ -217,6 +217,7 @@ const AKS_VIEW: ViewDef = {
     readiness: t('svc', 'e-svc-pod'),
     'load-balancer': t('lb', 'e-lb-svc'),
     'first-response': t('user', 'e-user-fd', 'e-fd-gw', 'e-gw-lb', 'e-lb-svc', 'e-svc-pod'),
+    response: t('user', 'e-user-fd', 'e-fd-gw', 'e-gw-lb', 'e-lb-svc', 'e-svc-pod'),
     'window-open': t('window', 'e-gw-window'),
     'window-close': t('window'),
     'cluster-stop': t(['arm', 'g-cluster'], 'e-gw-arm', 'e-arm-cp'),
