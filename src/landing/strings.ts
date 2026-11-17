@@ -54,7 +54,7 @@ export const landing = {
     primaryAction: 'Try the simulation',
     secondaryAction: 'Sign in to run it on Kubernetes',
     signInNote:
-      'Sign-in is by Microsoft Entra ID. New here? On the Microsoft page, select "No account? Create one" and confirm your email with a one-time code.',
+      'Sign-in is by Microsoft Entra ID. New here? On the Microsoft page, select "No account? Create one", then "Sign up with email", and confirm your email with a one-time code.',
   },
 
   diagram: {
@@ -77,8 +77,8 @@ export const landing = {
       facts: [
         { label: 'Availability', value: 'Always on' },
         { label: 'Who can use it', value: 'Guests and signed-in users' },
-        { label: 'Cold start', value: 'About 8 to 15 s', mono: true },
-        { label: 'Warm request', value: '60 to 300 ms', mono: true },
+        { label: 'Cold start', value: 'About 15 to 25 s', mono: true },
+        { label: 'Warm request', value: '0.3 to 1 s', mono: true },
         { label: 'When idle', value: 'Scales to zero instances' },
         { label: 'Network', value: 'No public endpoint, gateway only' },
       ] as Fact[],

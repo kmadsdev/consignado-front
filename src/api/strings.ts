@@ -22,7 +22,7 @@ export const E = {
   validation: 'One or more values are not valid.',
   tooMany: 'Too many requests in a short time. Wait one minute, then try again.',
   badGateway: 'The API host is not available now. Try again in a moment.',
-  timeout: 'The API host did not answer in time. A cold host can need 8 to 15 seconds. Try again.',
+  timeout: 'The API host did not answer in time. A cold host can need 15 to 25 seconds. Try again.',
   internal: 'The service had an internal error. Try again in a moment.',
   unknown: (status: number) => `The request failed (HTTP ${status}). Try again.`,
   authFailed: 'The sign-in did not complete. Try again.',

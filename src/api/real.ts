@@ -6,7 +6,7 @@ import { API_BASE } from '../config'
 import { ApiError } from './errors'
 import { deviceFingerprint } from './fingerprint'
 import {
-  contractToApi, customerToApi, incomeToApi, pageQuery, parseTrace, previewToApi, problemText, simulationToApi,
+  contractToApi, customerToApi, incomeToApi, normalizeTrace, pageQuery, parseTrace, previewToApi, problemText, simulationToApi,
   toAgreement, toContract, toCustomer, toList, toMargin, toPreview, toSimulation, toSnapshot,
   type ApiAgreement, type ApiContract, type ApiCustomer, type ApiMargin, type ApiPage, type ApiPreview, type ApiProblem, type ApiSimulation,
 } from './map'
@@ -29,16 +29,16 @@ let openSessionId = ''
 /** A trace for a call that came back with no trace header: only what the browser measured. */
 function measuredTrace(host: HostKind, label: string, ms: number, status: number): RequestTrace {
   const ts = new Date().toISOString()
-  return {
+  return normalizeTrace({
     host, cold: false, totalMs: ms,
     events: [
       { ts, stage: 'request', status: 'done', detail: label },
       { ts, stage: 'response', status: status >= 200 && status < 400 ? 'done' : 'error', detail: `${status || 'no answer'}: ${E.trace.noTrace}`, ms },
     ],
-  }
+  })
 }
 
-function toError(status: number, body: ApiProblem | null, trace: RequestTrace | null, retryAfter: number): ApiError {
+function toError(status: number, body: ApiProblem | null, trace: RequestTrace | null, retryAfter: number, label: string): ApiError {
   const code = body?.code
   const text = problemText(body)
   let message: string
@@ -61,7 +61,7 @@ function toError(status: number, body: ApiProblem | null, trace: RequestTrace | 
   else if (status >= 500) message = E.internal
   else if (status === 400 || status === 412 || status === 422) message = text || E.validation
   else message = text || E.unknown(status)
-  return new ApiError(status, message, trace ?? undefined, code, retryAfter > 0 ? retryAfter : undefined)
+  return new ApiError(status, message, trace ?? undefined, code, retryAfter > 0 ? retryAfter : undefined, label)
 }
 
 async function request<T>(path: string, o: Options = {}): Promise<Raw<T>> {
@@ -75,13 +75,13 @@ async function request<T>(path: string, o: Options = {}): Promise<Raw<T>> {
     if (token) headers.Authorization = `Bearer ${token}`
     else if (auth === 'required') throw new ApiError(401, E.unauthorized, undefined, 'unauthorized')
   }
-  const label = o.label ?? `${method} ${path}`
+  const label = o.label ?? `${method} /api${path.split('?')[0]}`
   const started = performance.now()
   let res: Response
   try {
     res = await fetch(API_BASE + path, { method, headers, body: o.body === undefined ? undefined : JSON.stringify(o.body), cache: 'no-store', credentials: 'omit' })
   } catch {
-    throw new ApiError(0, E.network, o.host ? measuredTrace(o.host, label, Math.round(performance.now() - started), 0) : undefined, 'network')
+    throw new ApiError(0, E.network, o.host ? measuredTrace(o.host, label, Math.round(performance.now() - started), 0) : undefined, 'network', undefined, label)
   }
   const ms = Math.round(performance.now() - started)
   const trace = parseTrace(res.headers.get('x-consignado-trace'), res.headers.get('x-consignado-host')) ?? (o.host ? measuredTrace(o.host, label, ms, res.status) : null)
@@ -90,18 +90,18 @@ async function request<T>(path: string, o: Options = {}): Promise<Raw<T>> {
   let body: unknown = null
   let json = text === ''
   if (text) { try { body = JSON.parse(text); json = true } catch { body = null } }
-  if (!res.ok) throw toError(res.status, body as ApiProblem | null, trace, Number(res.headers.get('retry-after')) || 0)
+  if (!res.ok) throw toError(res.status, body as ApiProblem | null, trace, Number(res.headers.get('retry-after')) || 0, label)
   // A page of the static site in place of JSON: the gateway is not behind this path.
-  if (!json) throw new ApiError(502, E.badGateway, trace ?? undefined, 'not-json')
+  if (!json) throw new ApiError(502, E.badGateway, trace ?? undefined, 'not-json', undefined, label)
   return { data: body as T, trace }
 }
 
 /** One call to the Spring Boot API through the proxy of a host. */
-async function domain<T>(host: HostKind, method: string, path: string, body?: unknown, o: Partial<Options> = {}): Promise<{ data: T; trace: RequestTrace }> {
-  const label = `${method} /api/v1${path.split('?')[0]}`
+async function domain<T>(host: HostKind, method: string, path: string, body?: unknown, o: Partial<Options> = {}): Promise<{ data: T; trace: RequestTrace; label: string }> {
+  const label = `${method} /api/${host === 'functions' ? 'fn' : 'aks'}/api/v1${path.split('?')[0]}`
   const res = await request<T>(`/${host === 'functions' ? 'fn' : 'aks'}/api/v1${path}`, { method, body, host, label, ...o })
   if (host === 'aks' && openSessionId) aksCalls.set(openSessionId, (aksCalls.get(openSessionId) ?? 0) + 1)
-  return { data: res.data, trace: res.trace ?? measuredTrace(host, label, 0, 200) }
+  return { data: res.data, trace: res.trace ?? measuredTrace(host, label, 0, 200), label }
 }
 
 // ---- sessions remembered by this browser (the gateway has no "my sessions" route) ----
@@ -168,10 +168,6 @@ export async function getSession(id: string): Promise<SessionView> {
   rememberSession(s.id)
   return viewSession(s)
 }
-/** Not possible on the gateway: a window ends when its 15 minutes end. The UI hides the button (CAN_END_SESSION). */
-export async function endSession(id: string): Promise<SessionView> {
-  return getSession(id)
-}
 export async function listMySessions(): Promise<SessionView[]> {
   const me = await getMe().catch(() => null)
   const ids = rememberedSessions()
@@ -187,62 +183,62 @@ export async function sendContact(input: ContactInput): Promise<ContactRequest> 
 // ---- domain calls -------------------------------------------------------------------
 export async function listAgreements(host: HostKind): Promise<ApiResult<Agreement[]>> {
   const res = await domain<ApiAgreement[]>(host, 'GET', '/agreements')
-  return { data: toList(res.data, toAgreement).items, trace: res.trace }
+  return { data: toList(res.data, toAgreement).items, trace: res.trace, label: res.label }
 }
 export async function listCustomers(host: HostKind): Promise<ApiResult<Customer[]>> {
   const res = await domain<ApiPage<ApiCustomer>>(host, 'GET', `/customers?${pageQuery()}`)
   const list = toList(res.data, toCustomer)
-  return { data: list.items, trace: res.trace, page: list.page }
+  return { data: list.items, trace: res.trace, label: res.label, page: list.page }
 }
 export async function listSimulations(host: HostKind): Promise<ApiResult<Simulation[]>> {
   const res = await domain<ApiPage<ApiSimulation>>(host, 'GET', `/simulations?${pageQuery()}`)
   const list = toList(res.data, toSimulation)
-  return { data: list.items, trace: res.trace, page: list.page }
+  return { data: list.items, trace: res.trace, label: res.label, page: list.page }
 }
 export async function listContracts(host: HostKind): Promise<ApiResult<Contract[]>> {
   const res = await domain<ApiPage<ApiContract>>(host, 'GET', `/contracts?${pageQuery()}`)
   const list = toList(res.data, toContract)
-  return { data: list.items, trace: res.trace, page: list.page }
+  return { data: list.items, trace: res.trace, label: res.label, page: list.page }
 }
 export async function createCustomer(host: HostKind, input: CustomerInput): Promise<ApiResult<Customer>> {
   const res = await domain<ApiCustomer>(host, 'POST', '/customers', customerToApi(input))
-  return { data: toCustomer(res.data), trace: res.trace }
+  return { data: toCustomer(res.data), trace: res.trace, label: res.label }
 }
 async function marginOf(host: HostKind, id: string): Promise<Margin> {
   return toMargin((await domain<ApiMargin>(host, 'GET', `/customers/${encodeURIComponent(id)}/margin`)).data)
 }
 export async function changeIncome(host: HostKind, id: string, income: number): Promise<ApiResult<IncomeResult>> {
   const res = await domain<ApiCustomer>(host, 'PATCH', `/customers/${encodeURIComponent(id)}/income`, incomeToApi(income))
-  return { data: { customer: toCustomer(res.data), margin: await marginOf(host, id) }, trace: res.trace }
+  return { data: { customer: toCustomer(res.data), margin: await marginOf(host, id) }, trace: res.trace, label: res.label }
 }
 export async function getMargin(host: HostKind, id: string): Promise<ApiResult<Margin>> {
   const res = await domain<ApiMargin>(host, 'GET', `/customers/${encodeURIComponent(id)}/margin`)
-  return { data: toMargin(res.data), trace: res.trace }
+  return { data: toMargin(res.data), trace: res.trace, label: res.label }
 }
 /** The API stores a simulation only when it fits the margin (422 `margin-exceeded` when it does not). */
 export async function simulate(host: HostKind, input: SimulationInput): Promise<ApiResult<SimulationResult>> {
   const res = await domain<ApiSimulation>(host, 'POST', '/simulations', simulationToApi(input))
-  return { data: { simulation: toSimulation(res.data), margin: await marginOf(host, input.customerId), fitsMargin: true }, trace: res.trace }
+  return { data: { simulation: toSimulation(res.data), margin: await marginOf(host, input.customerId), fitsMargin: true }, trace: res.trace, label: res.label }
 }
 export async function createContract(host: HostKind, simulationId: string): Promise<ApiResult<Contract>> {
   const res = await domain<ApiContract>(host, 'POST', '/contracts', contractToApi(simulationId), { headers: { 'Idempotency-Key': crypto.randomUUID() } })
-  return { data: toContract(res.data), trace: res.trace }
+  return { data: toContract(res.data), trace: res.trace, label: res.label }
 }
 export async function contractAction(host: HostKind, id: string, action: ContractAction): Promise<ApiResult<Contract>> {
   const body = action === 'reject' ? { reason: E.reason.reject } : action === 'cancel' ? { reason: E.reason.cancel } : undefined
   const res = await domain<ApiContract>(host, 'POST', `/contracts/${encodeURIComponent(id)}/${action}`, body)
-  return { data: toContract(res.data), trace: res.trace }
+  return { data: toContract(res.data), trace: res.trace, label: res.label }
 }
 
 // ---- guest calls ----------------------------------------------------------------------
 export async function previewSimulation(input: PreviewInput): Promise<ApiResult<PreviewResult>> {
   const res = await domain<ApiPreview>('functions', 'POST', '/simulations/preview', previewToApi(input), { auth: 'optional' })
-  return { data: toPreview(res.data), trace: res.trace }
+  return { data: toPreview(res.data), trace: res.trace, label: res.label }
 }
 export async function getSnapshot(): Promise<ApiResult<Snapshot>> {
   const started = performance.now()
   const res = await request<Parameters<typeof toSnapshot>[0]>('/snapshot', { auth: 'none' })
-  return { data: toSnapshot(res.data), trace: res.trace ?? measuredTrace('functions', 'GET /api/snapshot', Math.round(performance.now() - started), 200) }
+  return { data: toSnapshot(res.data), trace: res.trace ?? measuredTrace('functions', 'GET /api/snapshot', Math.round(performance.now() - started), 200), label: 'GET /api/snapshot' }
 }
 
 // ---- admin ------------------------------------------------------------------------------
