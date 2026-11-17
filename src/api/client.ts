@@ -4,6 +4,7 @@
 import { MOCK } from '../config'
 import * as mock from './mock'
 import * as real from './real'
+import type { HostKind, PlatformStatus } from './types'
 
 export { ApiError } from './errors'
 export { CONTRACT_TRANSITIONS, WINDOW_MINUTES, COMPRESSED_START_MS, installmentOf, randomCustomerInput } from './mock'
@@ -38,6 +39,8 @@ export const adminGetState: typeof mock.adminGetState = MOCK ? mock.adminGetStat
 export const adminSetPaused: typeof mock.adminSetPaused = MOCK ? mock.adminSetPaused : real.adminSetPaused
 export const adminStopEngine: typeof mock.adminStopEngine = MOCK ? mock.adminStopEngine : real.adminStopEngine
 export const adminListContacts: typeof mock.adminListContacts = MOCK ? mock.adminListContacts : real.adminListContacts
+export const adminSetWindowSettings: typeof mock.adminSetWindowSettings = MOCK ? mock.adminSetWindowSettings : real.adminSetWindowSettings
+export const getStatus: (host: HostKind) => Promise<PlatformStatus | null> = MOCK ? mock.getStatus : real.getStatus
 
 export type {
   ApiResult,
