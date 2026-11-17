@@ -135,7 +135,7 @@ export function buildFlow(trace: RequestTrace, opts: FlowOptions = {}): FlowMode
   let last: string
   if (trace.host === 'functions') {
     node('fnhost', 'fnhost', 'main', ['functions-host', 'function-cold-start'])
-    edge('gateway', 'fnhost', has('functions-host') ? 'functions-host' : 'function-cold-start')
+    edge('gateway', 'fnhost', get('functions-host')?.timed ? 'functions-host' : 'function-cold-start')
     last = 'fnhost'
     if (detailed || has('jvm-start') || instance) {
       node('app', 'app', 'main', ['app', 'jvm-start'], { sub: instance })

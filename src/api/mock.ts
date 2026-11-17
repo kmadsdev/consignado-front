@@ -730,7 +730,7 @@ export async function getStatus(host: HostKind): Promise<PlatformStatus> {
       const restarts = slowOne === 'pods' ? 1 : 0
       services.push(
         { id: 'node', name: 'aks-system-31415926-vmss000000', kind: 'Node', region: STATUS_REGION, state: 'up', detail: 'Ready, Standard_D2as_v4', metrics: [metric('cpu', 'CPU', rnd(9, 34), '%', 'now'), metric('memory', 'Memory', rnd(41, 63), '%', 'now')], source: ['kubernetes'] },
-        { id: 'pods', name: 'consignado-api', kind: 'Pods', region: STATUS_REGION, state: st('pods'), detail: `2 of 2 pods Ready, ${restarts} restart${restarts === 1 ? '' : 's'}, image 1.4.2`, metrics: [metric('replicas', 'Ready pods', 2, 'count', 'now'), metric('restarts', 'Restarts', restarts, 'count', 'now')], source: ['kubernetes'], instances: [...PODS] },
+        { id: 'pods', name: 'consignado-api', kind: 'Pods', region: STATUS_REGION, state: st('pods'), detail: `2 of 2 pods Ready, ${restarts} restart${restarts === 1 ? '' : 's'}, image 1.4.2`, metrics: [metric('replicas', 'Ready pods', 2, 'count', 'now'), metric('restarts', 'Restarts', restarts, 'count', 'now')], source: ['kubernetes'], instances: [...PODS], build: { commit: MOCK_BUILD, repository: 'kmadsdev/consignado-api' } },
       )
     } else {
       services.push(
@@ -744,7 +744,7 @@ export async function getStatus(host: HostKind): Promise<PlatformStatus> {
     detail: slowOne === 'database' ? 'Server state Ready; CPU is higher than usual' : 'Server state Ready',
     metrics: [metric('cpu', 'CPU', slowOne === 'database' ? rnd(78, 92) : rnd(3, 14), '%'), metric('connections', 'Active connections', rnd(4, 12), 'count'), metric('memory', 'Memory', rnd(28, 40), '%')], source: ['azure-monitor', 'arm'],
   })
-  return { asOf: iso(now - rnd(1, 9) * 1000), host, services, build: { commit: MOCK_BUILD } }
+  return { asOf: iso(now - rnd(1, 9) * 1000), host, services }
 }
 
 // ---- admin ---------------------------------------------------------------------------------

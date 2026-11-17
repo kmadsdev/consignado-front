@@ -73,7 +73,7 @@ function layout(model: FlowModel, width: number) {
     const twoPods = model.nodes.some((m) => m.place === 'pod-b')
     for (const n of model.nodes) {
       const y = 28 + n.col * rowH
-      if (n.place === 'main') placed.set(n.id, { node: n, x, y, w: Math.min(NODE_W, width - 8, twoPods ? NODE_W : 2 * side - 4) })
+      if (n.place === 'main') placed.set(n.id, { node: n, x, y, w: nw })
       else if (n.place === 'pod-a') placed.set(n.id, { node: n, x: twoPods ? x - side / 2 : x, y, w: twoPods ? nw : NODE_W })
       else if (n.place === 'above') placed.set(n.id, { node: n, x: x - side, y, w: nw })
       else if (n.place === 'below') placed.set(n.id, { node: n, x: x + side, y, w: nw })
