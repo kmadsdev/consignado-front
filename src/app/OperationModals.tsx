@@ -175,7 +175,7 @@ export function SimulateModal(props: {
             <KeyValuePairs
               columns={3}
               items={[
-                { label: T.simulate.installment, value: <Box variant="awsui-value-large"><Mono>{brl(result.simulation.installment)}</Mono></Box> },
+                { label: T.simulate.installment, value: <Box fontSize="heading-l" fontWeight="bold"><span className="mono" style={{ whiteSpace: 'nowrap' }}>{brl(result.simulation.installment)}</span></Box> },
                 { label: T.simulate.total, value: <Mono>{brl(result.simulation.totalAmount)}</Mono> },
                 { label: T.simulate.term, value: T.common.months(result.simulation.termMonths) },
               ]}

@@ -134,7 +134,7 @@ export function SimulatePage() {
                     <KeyValuePairs
                       columns={2}
                       items={[
-                        { label: T.guest.installment, value: <Box variant="awsui-value-large"><Mono>{brl(result.installment)}</Mono></Box> },
+                        { label: T.guest.installment, value: <Box fontSize="heading-xl" fontWeight="bold"><span className="mono" style={{ whiteSpace: 'nowrap' }}>{brl(result.installment)}</span></Box> },
                         { label: T.guest.total, value: <Mono>{brl(result.totalAmount)}</Mono> },
                         { label: T.guest.interest, value: <Mono>{brl(result.totalInterest)}</Mono> },
                         { label: T.guest.marginLimit, value: <Mono>{brl(result.marginLimit)}</Mono> },
