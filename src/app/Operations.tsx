@@ -7,8 +7,12 @@ import StatusIndicator from '@cloudscape-design/components/status-indicator'
 import Tabs from '@cloudscape-design/components/tabs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as api from '../api/client'
-import { ApiError, CONTRACT_TRANSITIONS, speedOf, type ApiResult, type ContractAction, type IncomeResult, type SimulationResult } from '../api/client'
+import { CONTRACT_TRANSITIONS, speedOf, type ApiResult, type ContractAction, type IncomeResult, type SimulationResult } from '../api/client'
 import type { Agreement, Contract, Customer, HostKind, Margin, Simulation } from '../api/types'
+import ExpandableSection from '@cloudscape-design/components/expandable-section'
+import { InlineRecord } from '../flow/InlineRecord'
+import { tracked } from '../flow/session'
+import type { CallRecord } from '../flow/store'
 import { useShell } from '../shell/context'
 import { ContractStatusText, CopyId, Mono } from './common'
 import { DataTable, type Column } from './DataTable'
@@ -30,7 +34,9 @@ interface Props {
 
 /** The tables of the shared data and the workflow actions, bound to one host. */
 export function Operations({ host, canWrite, readOnlyReason }: Props) {
-  const { notify, showTrace } = useShell()
+  const { notify } = useShell()
+  const [lastCall, setLastCall] = useState<CallRecord | null>(null)
+  const [loadCalls, setLoadCalls] = useState<CallRecord[]>([])
   const [agreements, setAgreements] = useState<Agreement[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [simulations, setSimulations] = useState<Simulation[]>([])
@@ -55,20 +61,25 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
     setLoading(true); setError(null); setSlow(false)
     const slowTimer = window.setTimeout(() => { if (seq === loadSeq.current) setSlow(true) }, 1500)
     try {
-      const a = await api.listAgreements(host)
+      const calls: CallRecord[] = []
+      const a = await tracked(() => api.listAgreements(host))
+      if (a.record) calls.push(a.record)
+      if (!a.res) throw a.err
       if (seq !== loadSeq.current || !alive.current) return
-      setAgreements(a.data)
-      showTrace({ label: a.label, trace: a.trace, ok: true, at: Date.now() })
-      const [c, s, k] = await Promise.all([api.listCustomers(host), api.listSimulations(host), api.listContracts(host)])
+      setAgreements(a.res.data)
+      const [c, s, k] = await Promise.all([tracked(() => api.listCustomers(host)), tracked(() => api.listSimulations(host)), tracked(() => api.listContracts(host))])
+      for (const x of [c, s, k]) if (x.record) calls.push(x.record)
+      if (alive.current) setLoadCalls(calls.reverse())
+      if (!c.res || !s.res || !k.res) throw c.err ?? s.err ?? k.err
       if (seq !== loadSeq.current || !alive.current) return
-      setCustomers(c.data); setSimulations(s.data); setContracts(k.data)
+      setCustomers(c.res.data); setSimulations(s.res.data); setContracts(k.res.data)
     } catch (err) {
       if (seq === loadSeq.current && alive.current) setError(err instanceof Error ? err.message : T.ops.unknownError)
     } finally {
       window.clearTimeout(slowTimer)
       if (seq === loadSeq.current && alive.current) { setLoading(false); setSlow(false) }
     }
-  }, [host, showTrace])
+  }, [host])
 
   useEffect(() => {
     alive.current = true
@@ -81,13 +92,12 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
     setBusy(true)
     const slowTimer = window.setTimeout(() => notify({ id: 'op', type: 'in-progress', loading: true, content: host === 'aks' ? T.ops.slowAks : T.ops.slow }), 1200)
     try {
-      const res = await fn()
-      showTrace({ label: res.label, trace: res.trace, ok: true, at: Date.now() }, true)
-      notify({ id: 'op', type: 'success', content: `${okText(res.data)} ${T.ops.timing(duration(res.trace.totalMs), speedOf(res.trace))}` })
-      return res.data
-    } catch (err) {
-      const apiError = err instanceof ApiError ? err : null
-      if (apiError?.trace) showTrace({ label: apiError.label ?? '', trace: apiError.trace, ok: false, message: apiError.message, at: Date.now() }, true)
+      const { res, err, record } = await tracked(fn)
+      if (alive.current) setLastCall(record)
+      if (res) {
+        notify({ id: 'op', type: 'success', content: `${okText(res.data)} ${T.ops.timing(duration(res.trace.totalMs), speedOf(res.trace))}` })
+        return res.data
+      }
       notify({ id: 'op', type: 'error', header: T.ops.failed, content: err instanceof Error ? err.message : T.ops.unknownError })
       return undefined
     } finally {
@@ -135,9 +145,11 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
   const openIncome = () => {
     if (!customer) return
     setModal('income')
-    api.getMargin(host, customer.id)
-      .then((res) => { if (alive.current) { setMargin(res.data); showTrace({ label: res.label, trace: res.trace, ok: true, at: Date.now() }) } })
-      .catch(() => undefined)
+    void tracked(() => api.getMargin(host, customer.id)).then(({ res, record }) => {
+      if (!alive.current) return
+      setLastCall(record)
+      if (res) setMargin(res.data)
+    })
   }
 
   const customerColumns: Column<CustomerRow>[] = [
@@ -194,6 +206,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
         </Alert>
       )}
       {writeOff && !error && <Alert type="info" header={T.ops.readOnlyTitle}>{writeReason}</Alert>}
+      <InlineRecord record={lastCall} />
       <Tabs
         activeTabId={tab}
         onChange={(e) => setTab(e.detail.activeTabId)}
@@ -300,12 +313,18 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
           },
         ]}
       />
+      {loadCalls.length > 0 && (
+        <ExpandableSection headerText={T.ops.tableLoads(loadCalls.length)} variant="footer">
+          <SpaceBetween size="s">{loadCalls.map((r) => <InlineRecord key={r.id} record={r} />)}</SpaceBetween>
+        </ExpandableSection>
+      )}
       <Box color="text-body-secondary" fontSize="body-s">{T.ops.noDelete}</Box>
 
       {modal === 'add' && (
         <AddCustomerModal
           agreements={agreements}
           busy={busy}
+          record={lastCall}
           onDismiss={closeModal}
           onSubmit={async (input) => {
             const created = await run(() => api.createCustomer(host, input), (c) => T.ops.customerCreated(c.name, c.id))
@@ -320,6 +339,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
           busy={busy}
           canWrite={canWrite}
           result={simResult}
+          record={lastCall}
           onDismiss={closeModal}
           onSubmit={async (principal, termMonths) => {
             const res = await run(() => api.simulate(host, { customerId: customer.id, principal, termMonths }), (r) => T.ops.simulationCreated(r.simulation.id))
@@ -334,6 +354,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
           busy={busy}
           margin={margin}
           result={incomeResult}
+          record={lastCall}
           onDismiss={closeModal}
           onSubmit={async (income) => {
             const res = await run(() => api.changeIncome(host, customer.id, income), (r) => T.ops.incomeChanged(r.customer.id))

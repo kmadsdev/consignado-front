@@ -138,3 +138,16 @@ export function useDemoTimeline(view: 'aks' | 'functions', opts?: DemoTimelineOp
 
   return { events, running, start, reset, run }
 }
+
+/** The guest replay of a cluster start as a recorded run: real durations (about 7 min 13 s), with ISO times. */
+export function demoAksStartEvents(t0 = Date.UTC(2026, 10, 17, 12, 0, 0)): LifecycleEvent[] {
+  const out: LifecycleEvent[] = []
+  let t = t0
+  for (const s of AKS_STEPS) {
+    if (s.stage === 'window-close') break
+    out.push({ ts: new Date(t).toISOString(), stage: s.stage, status: 'active' })
+    t += s.ms ?? 0
+    out.push({ ts: new Date(t).toISOString(), stage: s.stage, status: 'done', detail: s.detail, ms: s.ms })
+  }
+  return out
+}

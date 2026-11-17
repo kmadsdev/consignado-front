@@ -87,6 +87,7 @@ async function request<T>(path: string, o: Options = {}): Promise<Raw<T>> {
   const ms = Math.round(performance.now() - started)
   const trace = parseTrace(res.headers.get('x-consignado-trace'), res.headers.get('x-consignado-host')) ?? (o.host ? measuredTrace(o.host, label, ms, res.status) : null)
   if (trace && o.host) last[trace.host] = { ms: trace.totalMs || ms, at: Date.now(), cold: trace.cold }
+  if (trace) trace.status = res.status
   const text = await res.text().catch(() => '')
   let body: unknown = null
   let json = text === ''

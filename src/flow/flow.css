@@ -1,0 +1,55 @@
+/* Request flow, replay transport, inspector. Own classes only (prefix fl-). No Cloudscape class is restyled.
+   Colours come from Cloudscape design tokens (set as --fl-* on the root by the components). */
+.fl-root { position: relative; width: 100%; min-width: 0; color: var(--fl-text); }
+.fl-svg { position: absolute; inset: 0; overflow: visible; }
+.fl-line { stroke: var(--fl-line); stroke-width: 2; stroke-linejoin: round; }
+.fl-line-active { stroke: var(--fl-active); stroke-width: 3; }
+.fl-line-done { stroke: var(--fl-done); stroke-width: 2.5; }
+.fl-dot { fill: var(--fl-active); stroke: var(--fl-bg); stroke-width: 2; }
+.fl-edge-ms {
+  position: absolute; transform: translate(-50%, -50%); padding: 0 4px; border-radius: 4px;
+  background: var(--fl-bg); color: var(--fl-muted); font-size: 12px; line-height: 16px; white-space: nowrap;
+  font-family: Monaco, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.fl-node { position: absolute; display: flex; justify-content: center; }
+.fl-node > span { display: block; width: 100%; }
+.fl-node-btn {
+  all: unset; box-sizing: border-box; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  text-align: center; cursor: pointer; border-radius: 8px; padding: 0 2px 2px;
+}
+.fl-node-btn:focus-visible { outline: 2px solid var(--fl-focus); outline-offset: 2px; }
+.fl-icon {
+  position: relative; width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center;
+  outline: 2px solid transparent; outline-offset: 3px; background: var(--fl-bg); transition: outline-color 120ms;
+}
+.fl-node-idle .fl-icon { opacity: 0.45; }
+.fl-node-active .fl-icon { outline-color: var(--fl-active); }
+.fl-node-done .fl-icon { outline-color: var(--fl-done); }
+.fl-node-error .fl-icon { outline-color: var(--fl-error); }
+.fl-node-other .fl-icon { opacity: 0.45; outline-color: transparent; }
+.fl-live { position: absolute; right: -6px; top: -6px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--fl-bg); }
+.fl-live-up { background: var(--fl-done); }
+.fl-live-degraded { background: var(--fl-warn); }
+.fl-live-down { background: var(--fl-error); }
+.fl-live-starting { background: var(--fl-active); }
+.fl-live-stopped { background: var(--fl-idle); }
+.fl-live-unknown { background: var(--fl-bg); border-color: var(--fl-idle); }
+.fl-label { margin-top: 5px; font-size: 13px; line-height: 16px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-sub, .fl-ms, .fl-metric { font-size: 12px; line-height: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-sub, .fl-metric { color: var(--fl-muted); }
+.fl-node-error .fl-ms { color: var(--fl-error); }
+.fl-pop-list { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+.fl-pop-list > li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.fl-pop-list > li > span:last-child { text-align: right; }
+
+.fl-transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.fl-transport-slider { flex: 1 1 180px; min-width: 140px; }
+.fl-transport-speed { width: 112px; }
+.fl-elapsed { white-space: nowrap; }
+
+.fl-share { display: flex; align-items: center; gap: 6px; min-width: 90px; }
+.fl-share-bar { flex: 1 1 auto; height: 6px; border-radius: 3px; background: var(--fl-line); overflow: hidden; min-width: 40px; }
+.fl-share-bar > span { display: block; height: 100%; background: var(--fl-active); }
+.fl-inline { border-left: 3px solid var(--fl-done); padding: 2px 0 2px 10px; }
+.fl-inline-error { border-left-color: var(--fl-error); }
+.fl-inline-path { font-size: 12px; line-height: 16px; color: var(--fl-muted); overflow-wrap: anywhere; }

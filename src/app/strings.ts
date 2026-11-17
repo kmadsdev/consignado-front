@@ -115,6 +115,7 @@ export const en = {
     slowAks: 'Request in progress.',
     failed: 'The request was refused',
     timing: (time: string, speed: 'cold' | 'slow' | 'warm') => `(${time}, ${speed === 'slow' ? 'slow call' : speed})`,
+    tableLoads: (n: number) => `Table loads (${n} requests)`,
     noDelete: 'The data is shared by all recruiters. You change it through the workflow only: no delete and no free edit.',
     customers: 'Customers',
     customersHint: 'People with a payroll agreement. Select one to simulate a loan or to change the income.',
