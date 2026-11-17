@@ -2,7 +2,7 @@
 
 export const STAGE_NAMES: Record<string, string> = {
   request: 'Browser sends the request',
-  edge: 'Front Door checks and forwards',
+  edge: 'Cloudflare edge checks and forwards',
   gateway: 'Gateway accepts the request',
   identity: 'Entra ID token is checked',
   quota: 'Quota and budget are checked',
@@ -27,8 +27,8 @@ export const STAGE_NAMES: Record<string, string> = {
 
 export const N = {
   user: { label: 'User', sub: 'browser', what: 'Your browser sends the request and draws the answer.' },
-  frontdoor: { label: 'Azure Front Door', sub: 'CDN + WAF', what: 'Front Door ends TLS, applies the WAF rules and the rate limit, then forwards the request.' },
-  blob: { label: 'Blob Storage', sub: 'static site', what: 'Blob Storage holds the files of this web page. Front Door serves them from its cache.' },
+  frontdoor: { label: 'Cloudflare edge', sub: 'CDN + WAF + TLS', what: 'The Cloudflare edge ends TLS, applies the WAF rules and the rate limit, then forwards the request.' },
+  blob: { label: 'Blob Storage', sub: 'static site', what: 'Blob Storage holds the files of this web page. The Cloudflare edge serves them from its cache.' },
   gateway: { label: 'Gateway', sub: 'Java function', what: 'The gateway checks who you are and what you may use, then sends the call to one of the two hosts.' },
   gatewayAks: { label: 'Gateway', sub: 'token, quota, routing', what: 'The gateway checks the token, the access windows left and the budget, then starts the cluster and routes the call.' },
   entra: { label: 'Microsoft Entra ID', sub: 'sign-in, tokens', what: 'Entra ID signs the user in with an email code and issues the token that the gateway checks.' },
@@ -58,7 +58,7 @@ export const G = {
   vnetShort: 'Virtual network',
   cluster: 'AKS cluster',
   nodepool: 'Node pool · 1 node',
-  node: 'Node · Standard_B2s VM',
+  node: 'Node · Standard_D2as_v4 VM',
   ns: 'namespace consignado',
   ci: 'CI/CD',
 }

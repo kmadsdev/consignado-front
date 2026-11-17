@@ -161,6 +161,16 @@ function Glyph({ name, size }: { name: string; size: number }) {
       </svg>
     )
   }
+  if (name === 'edge') {
+    // Own pictogram of a network edge: a shield with a small globe. Not a vendor logo.
+    return (
+      <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" className="dg-glyph">
+        <path d="M20 4l13 4.5v9.8c0 8-5.4 14-13 17.2c-7.6-3.2-13-9.2-13-17.2V8.5z" className="dg-glyph-soft" strokeWidth="2" strokeLinejoin="round" />
+        <circle cx="20" cy="19" r="7.5" fill="none" strokeWidth="1.8" className="dg-glyph-line" />
+        <path d="M12.5 19h15M20 11.5c-3 2.2-3 12.8 0 15M20 11.5c3 2.2 3 12.8 0 15" fill="none" strokeWidth="1.6" strokeLinecap="round" className="dg-glyph-line" />
+      </svg>
+    )
+  }
   // Own pictogram of an application: a window with code brackets.
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" className="dg-glyph">
