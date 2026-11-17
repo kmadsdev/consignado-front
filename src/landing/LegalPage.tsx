@@ -1,0 +1,90 @@
+import Alert from '@cloudscape-design/components/alert'
+import Box from '@cloudscape-design/components/box'
+import Container from '@cloudscape-design/components/container'
+import ContentLayout from '@cloudscape-design/components/content-layout'
+import Header from '@cloudscape-design/components/header'
+import SpaceBetween from '@cloudscape-design/components/space-between'
+import TextContent from '@cloudscape-design/components/text-content'
+import { InternalLink, NavRoot, PageFooter, Prose } from './nav'
+import { NOTICE_DATE, common, privacy, terms, type LegalSection } from './strings'
+
+interface LegalPageProps {
+  title: string
+  description: string
+  alert?: { title: string; text: string }
+  sections: LegalSection[]
+}
+
+function LegalPage({ title, description, alert, sections }: LegalPageProps) {
+  return (
+    <NavRoot>
+      <ContentLayout
+        defaultPadding
+        maxContentWidth={880}
+        header={
+          <SpaceBetween size="m">
+            <Header variant="h1" description={description}>
+              {title}
+            </Header>
+            <Box color="text-body-secondary" fontSize="body-s">
+              {common.lastUpdated}: <Box variant="code" display="inline" fontSize="body-s">{NOTICE_DATE}</Box>
+            </Box>
+            {alert && (
+              <Alert type="info" header={alert.title}>
+                {alert.text}
+              </Alert>
+            )}
+          </SpaceBetween>
+        }
+      >
+        <SpaceBetween size="l">
+          <Container>
+            <Prose>
+              <SpaceBetween size="xl">
+                {sections.map((section) => (
+                  <section key={section.title}>
+                    <SpaceBetween size="xs">
+                      <Header variant="h2">{section.title}</Header>
+                      <TextContent>
+                        {section.paragraphs?.map((text) => (
+                          <p key={text}>{text}</p>
+                        ))}
+                        {section.items && (
+                          <ul>
+                            {section.items.map((text) => (
+                              <li key={text}>{text}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {section.after?.map((text) => (
+                          <p key={text}>{text}</p>
+                        ))}
+                      </TextContent>
+                      {section.link && <InternalLink href={section.link.href}>{section.link.text}</InternalLink>}
+                    </SpaceBetween>
+                  </section>
+                ))}
+              </SpaceBetween>
+            </Prose>
+          </Container>
+          <PageFooter showHome />
+        </SpaceBetween>
+      </ContentLayout>
+    </NavRoot>
+  )
+}
+
+export function PrivacyPage() {
+  return (
+    <LegalPage
+      title={privacy.title}
+      description={privacy.description}
+      alert={{ title: privacy.alertTitle, text: privacy.alert }}
+      sections={privacy.sections}
+    />
+  )
+}
+
+export function TermsPage() {
+  return <LegalPage title={terms.title} description={terms.description} sections={terms.sections} />
+}
