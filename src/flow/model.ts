@@ -38,6 +38,8 @@ export interface FlowSegment {
   start: number
   end: number
   ms: number
+  /** False when the trace gave no time for this stage (shown as "-"). */
+  timed: boolean
   status: StageStatus
   detail?: string
   nodes: string[]
@@ -85,24 +87,30 @@ export function dbFromDetail(detail: string | undefined): Omit<DbTiming, 'ms'> |
   return out
 }
 
-function stageMs(events: LifecycleEvent[]): Array<{ stage: string; ms: number; status: StageStatus; detail?: string }> {
+interface StageTime { stage: string; ms: number; timed: boolean; status: StageStatus; detail?: string }
+function stageMs(events: LifecycleEvent[]): StageTime[] {
   // A request trace has one event per stage. If a stage comes twice (active, then done), the last one wins.
+  // A stage with no `ms` (the gateway cannot measure `request` and `edge`) counts as 0 and shows no time.
   const order: string[] = []
-  const by = new Map<string, { stage: string; ms: number; status: StageStatus; detail?: string }>()
+  const by = new Map<string, StageTime>()
   for (const e of events) {
     if (!by.has(e.stage)) order.push(e.stage)
     const prev = by.get(e.stage)
-    by.set(e.stage, { stage: e.stage, ms: Math.max(0, e.ms ?? prev?.ms ?? 0), status: e.status, detail: e.detail ?? prev?.detail })
+    const timed = e.ms !== undefined || Boolean(prev?.timed)
+    by.set(e.stage, { stage: e.stage, ms: Math.max(0, e.ms ?? prev?.ms ?? 0), timed, status: e.status, detail: e.detail ?? prev?.detail })
   }
   return order.map((s) => by.get(s)!)
 }
 
 /** Builds the flow of one request from its trace. Old traces (no `app` stage) give the path up to the host. */
 export function buildFlow(trace: RequestTrace, opts: FlowOptions = {}): FlowModel {
-  const stages = stageMs(trace.events)
-  const has = (id: string) => stages.some((s) => s.stage === id)
+  // Key Vault "not needed for this host" (AKS: the pods read their secret themselves): the request did not touch it.
+  const stages = stageMs(trace.events).filter((x) => !(x.stage === 'keyvault' && /not needed/i.test(x.detail ?? '')))
   const get = (id: string) => stages.find((s) => s.stage === id)
-  const instance = trace.api?.instance ?? instanceFromDetail(get('app')?.detail)
+  const has = (id: string) => get(id) !== undefined
+  // "local" = the API host set no instance variable (Azure Functions custom handler): not a name to show.
+  const rawInstance = trace.api?.instance ?? instanceFromDetail(get('app')?.detail)
+  const instance = rawInstance && rawInstance !== 'local' ? rawInstance : undefined
   const detailed = has('app')
 
   const nodes: FlowNode[] = []
@@ -113,7 +121,7 @@ export function buildFlow(trace: RequestTrace, opts: FlowOptions = {}): FlowMode
     if (place === 'main' || place === 'pod-a') main.push(id)
     nodes.push({ id, kind, place, col, stages: own.filter(has), status: 'idle', ...extra })
   }
-  const edge = (from: string, to: string, stage?: string) => edges.push({ id: `${from}>${to}`, from, to, stage: stage && has(stage) ? stage : undefined })
+  const edge = (from: string, to: string, stage?: string) => edges.push({ id: `${from}>${to}`, from, to, stage: stage && get(stage)?.timed ? stage : undefined })
 
   node('browser', 'browser', 'main', ['request', 'response'])
   node('edge', 'edge', 'main', ['edge'])
@@ -129,7 +137,7 @@ export function buildFlow(trace: RequestTrace, opts: FlowOptions = {}): FlowMode
   let last: string
   if (trace.host === 'functions') {
     node('fnhost', 'fnhost', 'main', ['functions-host', 'function-cold-start'])
-    edge('gateway', 'fnhost', has('functions-host') ? 'functions-host' : 'function-cold-start')
+    edge('gateway', 'fnhost', get('functions-host')?.timed ? 'functions-host' : 'function-cold-start')
     last = 'fnhost'
     if (detailed || has('jvm-start') || instance) {
       node('app', 'app', 'main', ['app', 'jvm-start'], { sub: instance })
@@ -180,13 +188,13 @@ export function buildFlow(trace: RequestTrace, opts: FlowOptions = {}): FlowMode
   for (const s of stages) {
     const way = WAY[s.stage] ?? { nodes: [], path: [] }
     const path = way.path.filter((id) => known.has(id))
-    segments.push({ stage: s.stage, start: t, end: t + s.ms, ms: s.ms, status: s.status, detail: s.detail, nodes: way.nodes.filter((id) => known.has(id)), path: path.length >= 2 ? path : [] })
+    segments.push({ stage: s.stage, start: t, end: t + s.ms, ms: s.ms, timed: s.timed, status: s.status, detail: s.detail, nodes: way.nodes.filter((id) => known.has(id)), path: path.length >= 2 ? path : [] })
     t += s.ms
   }
   const failed = stages.some((s) => s.status === 'error')
   for (const n of nodes) {
     const own = stages.filter((s) => n.stages.includes(s.stage) && s.stage !== 'response')
-    if (own.length) n.ms = own.reduce((sum, s) => sum + s.ms, 0)
+    if (own.some((s) => s.timed)) n.ms = own.reduce((sum, s) => sum + s.ms, 0)
     // A node with no stage of its own was reached when the request did not fail on the way.
     n.status = own.some((s) => s.status === 'error') ? 'error' : own.length || !failed ? 'done' : 'idle'
   }
@@ -267,12 +275,12 @@ export function pathSteps(model: FlowModel): PathStep[] {
   const order = ['edge', 'gateway', 'identity', 'quota', 'keyvault', 'function-cold-start', 'jvm-start', 'functions-host', 'load-balancer', 'app', 'database']
   for (const id of order) {
     const s = model.segments.find((x) => x.stage === id)
-    if (!s) continue
+    if (!s || !s.timed) continue
     out.push({ stage: id, ms: s.ms, extra: id === 'database' && model.db && model.db.statements > 0 ? statementKinds(model.db) : undefined })
   }
   // An old trace has no host stage: the host time is inside `response`.
   const resp = model.segments.find((x) => x.stage === 'response')
-  if (!model.detailed && resp) out.push({ stage: 'response', ms: resp.ms })
+  if (!model.detailed && resp?.timed) out.push({ stage: 'response', ms: resp.ms })
   return out
 }
 

@@ -14,7 +14,7 @@ import { decimal, duration } from '../app/format'
 import { T as AppT } from '../app/strings'
 import { FlowDiagram, FLOW_VARS } from './FlowDiagram'
 import { buildFlow, statementKinds, type DbInfo, type FlowModel } from './model'
-import { buildCommit, podsOf, serviceOf } from './status'
+import { buildOf, podsOf, serviceOf } from './status'
 import type { CallRecord } from './store'
 import { F } from './strings'
 import { Transport, useReplay } from './Transport'
@@ -22,6 +22,7 @@ import { Transport, useReplay } from './Transport'
 const STATUS_TYPE: Record<string, StatusIndicatorProps.Type> = { done: 'success', error: 'error', active: 'in-progress', pending: 'pending' }
 const AUTO_WALL_MS = 3000
 const mono = (text: string) => <span className="mono">{text}</span>
+const monoNowrap = (text: string) => <span className="mono fl-nowrap">{text}</span>
 
 export function useFlowModel(record: CallRecord | null, status: PlatformStatus | null | undefined): FlowModel | null {
   const pods = podsOf(status)
@@ -36,7 +37,7 @@ export function RequestFlowView({ record, status }: { record: CallRecord; status
   const replay = useReplay(model.durationMs, record.id, AUTO_WALL_MS)
   return (
     <SpaceBetween size="xs">
-      <FlowDiagram model={model} pos={replay.pos} status={status} label={record.label} dbDetail={model.db ? <DbBlock db={model.db} status={status} compact /> : undefined} />
+      <FlowDiagram model={model} pos={replay.pos} status={status} label={record.label} dbDetail={model.db ? <DbBlock db={model.db} status={status} compact /> : undefined} edgeNetworkMs={record.browserMs !== undefined ? Math.max(0, record.browserMs - record.trace.totalMs) : undefined} />
       <Transport replay={replay} />
       {!model.db && <Box color="text-body-secondary" fontSize="body-s">{model.detailed ? F.noDatabase : `${F.noDatabase} ${F.oldTrace}`}</Box>}
     </SpaceBetween>
@@ -69,6 +70,14 @@ export function DbBlock({ db, status, compact = false }: { db: DbInfo; status?: 
   )
 }
 
+/** The instance that answered. The Functions host reports no instance id: then the function app name and a note. */
+function InstanceText({ model, status }: { model: FlowModel; status?: PlatformStatus | null }) {
+  if (model.instance) return mono(model.instance)
+  const app = model.host === 'functions' ? serviceOf(status, 'functions')?.name : undefined
+  if (!app) return <>{F.detail.unknown}</>
+  return <span>{mono(app)} <Box variant="span" color="text-body-secondary" fontSize="body-s">({F.noInstanceId})</Box></span>
+}
+
 /** The selected request in the inspector: summary, flow + replay, stage checklist, database, build, copy. */
 export function RequestDetail({ record, status }: { record: CallRecord; status?: PlatformStatus | null }) {
   const D = F.detail
@@ -76,7 +85,7 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
   const trace = record.trace
   const speed = speedOf(trace)
   const edgeMs = record.browserMs !== undefined ? Math.max(0, record.browserMs - trace.totalMs) : undefined
-  const commit = buildCommit(status)
+  const build = buildOf(status)
   const total = model.totalMs || model.durationMs
   return (
     <SpaceBetween size="l">
@@ -91,7 +100,7 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
               : <StatusIndicator type="error">{F.inline.failed(record.status ?? 0, record.code)}{record.message ? `: ${record.message}` : ''}</StatusIndicator>,
           },
           { label: D.host, value: AppT.host[trace.host] },
-          { label: D.instance, value: model.instance ? mono(model.instance) : D.unknown },
+          { label: D.instance, value: <InstanceText model={model} status={status} /> },
           {
             label: D.browserTotal,
             value: (
@@ -105,8 +114,8 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
           { label: D.edgeNetwork, value: <span title={D.edgeHint}>{mono(edgeMs !== undefined ? `${duration(edgeMs)}${record.browserMs ? ` (${decimal((edgeMs / record.browserMs) * 100, 0)}%)` : ''}` : '-')}</span> },
           {
             label: D.build,
-            value: commit
-              ? <Link external href={`https://github.com/kmadsdev/consignado-api/commit/${commit}`}>{mono(commit.slice(0, 12))}</Link>
+            value: build
+              ? <Link external href={`https://github.com/${build.repository}/commit/${build.commit}`}>{mono(build.commit.slice(0, 12))}</Link>
               : D.noBuild,
           },
         ]}
@@ -121,8 +130,8 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
         columnDefinitions={[
           { id: 'stage', header: D.colStage, cell: (s) => F.stageLong[s.stage] ?? s.stage, isRowHeader: true, minWidth: 160 },
           { id: 'status', header: D.colStatus, cell: (s) => <StatusIndicator type={STATUS_TYPE[s.status] ?? 'info'} iconAriaLabel={D.statusText[s.status] ?? s.status} />, width: 76 },
-          { id: 'start', header: D.colStart, cell: (s) => mono(`+${duration(s.start)}`), width: 96 },
-          { id: 'ms', header: D.colDuration, cell: (s) => mono(duration(s.ms)), width: 96 },
+          { id: 'start', header: D.colStart, cell: (s) => monoNowrap(`+${duration(s.start)}`), width: 104 },
+          { id: 'ms', header: D.colDuration, cell: (s) => (s.timed ? monoNowrap(duration(s.ms)) : '-'), width: 104 },
           {
             id: 'share', header: D.colShare, width: 140,
             cell: (s) => {

@@ -125,6 +125,8 @@ export interface ServiceStatus {
   detail: string              // one true sentence
   metrics: Metric[]           // may be empty
   source: StatusSource[]
+  /** The build that answers (gateway3: on `pods` only): the image tag is the commit. */
+  build?: { commit?: string; repository?: string } | null
   /** Pods only, when the gateway sends them: the names of the pods behind the Service. */
   instances?: string[]
 }

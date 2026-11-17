@@ -51,6 +51,8 @@ export const en = {
   } as Record<string, string>,
   close: 'Close',
   liveMetric: (key: string, value: string) => (key === 'latency-avg' ? `avg ${value} (5 min)` : key === 'replicas' ? `${value} pods ready` : `CPU ${value}`),
+  edgeNetwork: 'edge + network',
+  noInstanceId: 'instance id not reported by the Functions host',
   cached: 'cached',
   answered: 'answered',
   otherPod: 'other pod',
