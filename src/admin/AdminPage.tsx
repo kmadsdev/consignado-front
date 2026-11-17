@@ -142,7 +142,7 @@ function Admin() {
   return (
     <ContentLayout header={<Header variant="h1" description={A.description}>{A.title}</Header>}>
       <SpaceBetween size="m">
-        {failure && <Alert type="error" header={A.loadFailed} action={<Button onClick={load}>{A.retry}</Button>}>{failure}</Alert>}
+        {Boolean(failure) && <Alert type="error" header={A.loadFailed} action={<Button onClick={load}>{A.retry}</Button>}>{failure}</Alert>}
         <Tabs
           activeTabId={tab}
           onChange={(e) => setTab(e.detail.activeTabId)}

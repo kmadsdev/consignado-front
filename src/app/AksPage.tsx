@@ -47,7 +47,7 @@ function RequestMore() {
     <form onSubmit={(e) => { e.preventDefault(); void submit() }}>
       <SpaceBetween size="m">
         <Alert type="info" header={T.aks.noneLeftTitle}>{T.aks.noneLeftText(me.windowsMax)}</Alert>
-        {failure && <Alert type="error">{failure}</Alert>}
+        {Boolean(failure) && <Alert type="error">{failure}</Alert>}
         <FormField label={T.aks.moreLabel} description={T.aks.moreHint} errorText={touched ? error : ''} constraintText={T.aks.moreConstraint(reason.trim().length)} stretch>
           <Textarea value={reason} onChange={(e) => setReason(e.detail.value)} rows={4} placeholder={T.aks.morePlaceholder} />
         </FormField>
