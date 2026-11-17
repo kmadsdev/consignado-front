@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@azure/msal-browser": "^5.29.1",
+    "@cloudscape-design/collection-hooks": "^1.0.111",
     "@cloudscape-design/components": "^3.0.1413",
     "@cloudscape-design/design-tokens": "^3.0.117",
     "@cloudscape-design/global-styles": "^1.0.72",
