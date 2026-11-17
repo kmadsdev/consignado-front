@@ -79,7 +79,7 @@ function Overview() {
             header={
               <Header
                 variant="h2"
-                description={T.overview.windowsHint(left, me.windowsMax)}
+                description={T.overview.windowsHint(left, me.windowsMax, me.windowMinutes)}
                 actions={
                   activeId
                     ? <Button variant="primary" onClick={() => openWindow(navigate, activeId, me?.email)}>{T.overview.openLive}</Button>

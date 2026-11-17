@@ -12,6 +12,7 @@ export const ptBR: typeof en = {
   paused: 'Novas janelas de acesso estão pausadas no momento. O host serverless continua disponível.',
   held: 'Esta conta aguarda a análise do responsável. Você pode ler os dados, mas ainda não pode iniciar uma janela.',
   noWindows: 'Esta conta não tem mais janelas de acesso. Você pode pedir mais ao responsável.',
+  dailyLimit: 'O limite diário de janelas de acesso para todos os visitantes foi atingido. Tente de novo amanhã.',
   profileIncomplete: 'Complete seu perfil primeiro. Depois você pode iniciar uma janela de acesso.',
   cooldown: (minutes: number) =>
     minutes > 0

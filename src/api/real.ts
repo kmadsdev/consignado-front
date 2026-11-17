@@ -15,7 +15,7 @@ import type {
   PreviewInput, PreviewResult, SessionView, SimulationInput, SimulationResult, Snapshot,
 } from './mock'
 import { E } from './strings'
-import type { AdminState, AdminUser, Agreement, ContactRequest, Contract, Customer, Engine, HostKind, Margin, Me, Profile, RequestTrace, Session, Simulation } from './types'
+import type { AdminState, AdminUser, Agreement, ContactRequest, Contract, Customer, Engine, HostKind, Margin, Me, PlatformStatus, Profile, RequestTrace, Session, Simulation } from './types'
 
 type Auth = 'required' | 'optional' | 'none'
 interface Options { method?: string; body?: unknown; auth?: Auth; headers?: Record<string, string>; host?: HostKind; label?: string }
@@ -51,6 +51,7 @@ function toError(status: number, body: ApiProblem | null, trace: RequestTrace | 
     else if (code === 'held') message = E.held
     else if (code === 'blocked') message = E.blocked
     else if (code === 'no-windows') message = E.noWindows
+    else if (code === 'daily-limit') message = E.dailyLimit
     else if (code === 'profile-incomplete') message = E.profileIncomplete
     else if (code === 'cooldown') message = E.cooldown(retryAfter > 0 ? Math.ceil(retryAfter / 60) : 0)
     else message = text || E.conflict
@@ -168,6 +169,10 @@ export async function getSession(id: string): Promise<SessionView> {
   rememberSession(s.id)
   return viewSession(s)
 }
+/** POST /api/sessions/{id}/end: the owner ends the window early. The window is not given back. */
+export async function endSession(id: string): Promise<SessionView> {
+  return viewSession((await request<Session>(`/sessions/${encodeURIComponent(id)}/end`, { method: 'POST', body: {} })).data)
+}
 export async function listMySessions(): Promise<SessionView[]> {
   const me = await getMe().catch(() => null)
   const ids = rememberedSessions()
@@ -242,6 +247,19 @@ export async function getSnapshot(): Promise<ApiResult<Snapshot>> {
   return { data: toSnapshot(res.data), trace: res.trace ?? measuredTrace('functions', 'GET /api/snapshot', Math.round(performance.now() - started), 200), label: 'GET /api/snapshot' }
 }
 
+// ---- live service status ----------------------------------------------------------------
+/** `null` = the gateway has no status route yet (404): the page says so and keeps working. */
+export async function getStatus(host: HostKind): Promise<PlatformStatus | null> {
+  try {
+    const data = (await request<PlatformStatus>(`/status?host=${host}`, { auth: host === 'aks' ? 'required' : 'optional', label: `GET /api/status?host=${host}` })).data
+    // Anything that is not the contract shape (an HTML fallback page, an empty body) counts as "not available yet".
+    return data && Array.isArray(data.services) ? data : null
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.code === 'not-json')) return null
+    throw err
+  }
+}
+
 // ---- admin ------------------------------------------------------------------------------
 export async function adminListUsers(): Promise<AdminUser[]> {
   return (await request<AdminUser[]>('/admin/users')).data
@@ -249,6 +267,14 @@ export async function adminListUsers(): Promise<AdminUser[]> {
 export async function adminUserAction(id: string, action: AdminUserAction, windows?: number): Promise<AdminUser> {
   const body = action === 'grant-windows' ? { action: 'grant', windows: Math.max(1, Math.min(20, Math.round(windows ?? 1))) } : { action }
   return (await request<AdminUser>(`/admin/users/${encodeURIComponent(id)}`, { method: 'POST', body })).data
+}
+/** Admin action `delete`: the user row, the windows and the contact requests. The Entra account stays. */
+export async function adminDeleteUser(id: string): Promise<void> {
+  await request<unknown>(`/admin/users/${encodeURIComponent(id)}`, { method: 'POST', body: { action: 'delete' } })
+}
+/** Admin action `set`: access windows (0 to 50) and minutes per window (5 to 60). */
+export async function adminSetWindowSettings(id: string, settings: { windowsMax?: number; windowMinutes?: number }): Promise<AdminUser> {
+  return (await request<AdminUser>(`/admin/users/${encodeURIComponent(id)}`, { method: 'POST', body: { action: 'set', ...settings } })).data
 }
 export async function adminListSessions(): Promise<AdminSession[]> {
   const [sessions, users] = await Promise.all([request<Session[]>('/admin/sessions'), request<AdminUser[]>('/admin/users').catch(() => ({ data: [] as AdminUser[] }))])
