@@ -76,7 +76,7 @@ export function AppShell() {
   const notices = useNotices()
   const [navOpen, setNavOpen] = useState(() => window.innerWidth > 688)
   const [panelPosition, setPanelPosition] = useState<'bottom' | 'side'>('bottom')
-  const [panelSize, setPanelSize] = useState(430)
+  const [panelSize, setPanelSize] = useState(400)
 
   const isLive = LIVE_WINDOW.test(pathname) && pathname !== '/app/aks'
   const hasInspector = pathname.startsWith('/app/operations') || isLive
@@ -134,7 +134,7 @@ export function AppShell() {
         splitPanel={
           hasInspector ? (
             <SplitPanel header={traceRecord ? `${S.inspector.title}: ${traceRecord.label}` : S.inspector.title} closeBehavior="collapse">
-              {traceRecord ? <RequestInspector record={traceRecord} /> : <Box color="text-body-secondary">{S.inspector.empty}</Box>}
+              {traceRecord ? <RequestInspector record={traceRecord} diagramHeight={240} /> : <Box color="text-body-secondary">{S.inspector.empty}</Box>}
             </SplitPanel>
           ) : undefined
         }

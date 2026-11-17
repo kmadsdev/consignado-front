@@ -128,7 +128,7 @@ export function SimulatePage() {
                   <Button variant="primary" loading={busy}>{T.guest.submit}</Button>
                   {slow && <StatusIndicator type="in-progress">{T.guest.slow}</StatusIndicator>}
                 </SpaceBetween>
-                {failure && <Alert type="error" header={T.guest.failedTitle}>{failure}</Alert>}
+                {Boolean(failure) && <Alert type="error" header={T.guest.failedTitle}>{failure}</Alert>}
                 {result && !failure && (
                   <SpaceBetween size="s">
                     <KeyValuePairs

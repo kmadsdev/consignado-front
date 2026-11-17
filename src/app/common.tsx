@@ -24,7 +24,7 @@ export function Mono({ children }: { children: ReactNode }) {
 export function CopyId({ value, label }: { value: string; label?: string }) {
   return (
     <CopyToClipboard
-      variant="inline"
+      variant="icon"
       textToCopy={value}
       copyButtonAriaLabel={`${T.common.copy} ${label ?? value}`}
       copySuccessText={T.common.copied}
