@@ -102,7 +102,7 @@ function Admin() {
       cell: (u) => <StatusIndicator type={u.status === 'active' ? 'success' : u.status === 'held' ? 'warning' : 'error'}>{A.users.status[u.status]}</StatusIndicator>,
     },
     {
-      id: 'flags', header: A.users.colFlags,
+      id: 'flags', header: A.users.colFlags, minWidth: 230,
       cell: (u) => u.flags.length === 0
         ? <Box color="text-status-inactive">{A.users.noFlags}</Box>
         : <SpaceBetween size="xxs" direction="horizontal">{u.flags.map((f) => <Badge key={f} color={f === 'disposable-email' ? 'severity-medium' : 'severity-low'}>{A.users.flags[f]}</Badge>)}</SpaceBetween>,
