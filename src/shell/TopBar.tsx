@@ -2,6 +2,7 @@ import TopNavigation, { type TopNavigationProps } from '@cloudscape-design/compo
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth, type PersonaId } from '../auth'
+import { MOCK } from '../config'
 import { useShell } from './context'
 import { GLYPH_SRC, MOON_ICON, SUN_ICON } from './Glyph'
 import { S } from './strings'
@@ -10,6 +11,7 @@ import { hasStoredTheme, initialTheme, setTheme, type ThemeMode } from './theme'
 const ENGINE_ICON: Record<string, 'status-positive' | 'status-stopped' | 'status-in-progress' | 'status-warning' | 'status-pending'> = {
   running: 'status-positive', stopped: 'status-stopped', starting: 'status-in-progress', stopping: 'status-in-progress', cooldown: 'status-pending', paused: 'status-warning',
 }
+const only = (on: boolean, utility: TopNavigationProps.Utility): TopNavigationProps.Utility[] => (on ? [utility] : [])
 const PERSONA_ORDER: PersonaId[] = ['guest', 'recruiter', 'recruiter-new', 'recruiter-held', 'recruiter-spent', 'admin']
 
 export function TopBar() {
@@ -29,17 +31,18 @@ export function TopBar() {
   }, [])
 
   const engineState = engine?.state ?? 'stopped'
+  const engineLabel = engineState === 'paused' && engine?.pausedReason ? S.engine.pausedBy[engine.pausedReason] : S.engine.states[engineState]
   const utilities: TopNavigationProps.Utility[] = [
     {
       type: 'button',
       iconName: ENGINE_ICON[engineState],
-      text: S.engine.chip(S.engine.states[engineState]),
+      text: S.engine.chip(engineLabel),
       title: S.engine.chipTitle,
-      ariaLabel: `${S.engine.chipTitle}: ${S.engine.states[engineState]}`,
+      ariaLabel: `${S.engine.chipTitle}: ${engineLabel}`,
       disableUtilityCollapse: true,
       onClick: () => navigate('/app'),
     },
-    {
+    ...only(MOCK, {
       type: 'menu-dropdown',
       iconName: 'view-full',
       text: S.preview.label(S.preview.short[persona]),
@@ -58,7 +61,7 @@ export function TopBar() {
         if (id === 'reset') { resetDemoData(); notify({ type: 'success', content: S.preview.resetDone }) }
         else if (id.startsWith('persona:')) setPersona(id.slice(8) as PersonaId)
       },
-    },
+    }),
     {
       type: 'button',
       iconSvg: mode === 'dark' ? SUN_ICON : MOON_ICON,
@@ -87,7 +90,7 @@ export function TopBar() {
           variant: 'primary-button',
           text: S.user.signIn,
           ariaLabel: S.user.signIn,
-          onClick: () => { signIn(); navigate('/app') },
+          onClick: () => signIn('/app'),
         },
   ]
 

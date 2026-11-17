@@ -1,7 +1,7 @@
 // CONTRACT: the stage ids that the gateway emits and the diagrams draw.
 export const AKS_STAGES = [
   'request',        // browser sends the request
-  'edge',           // Azure Front Door: CDN, WAF, rate limit
+  'edge',           // Cloudflare edge: CDN, WAF, TLS, rate limit
   'gateway',        // gateway function accepts it
   'identity',       // Entra ID token is checked
   'quota',          // access windows left, account not held, budget not paused

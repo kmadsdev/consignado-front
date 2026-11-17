@@ -9,11 +9,14 @@ export interface AuthValue {
   role: Role
   /** True while the identity is not known yet. */
   loading: boolean
-  signIn: () => void
+  /** Starts the sign-in. `returnTo` is the path to show after it (default: the current page). */
+  signIn: (returnTo?: string) => void
   signOut: () => void
   /** Reads `me` again (after the profile is saved, after a window starts). */
   refresh: () => Promise<void>
-  /** Design preview only. */
+  /** A calm text when the sign-in or the first read of the account failed. Empty when all is well. */
+  authError: string
+  /** Design preview only (mock mode). */
   persona: PersonaId
   setPersona: (p: PersonaId) => void
   resetDemoData: () => void

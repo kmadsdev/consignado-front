@@ -11,7 +11,10 @@ import SpaceBetween from '@cloudscape-design/components/space-between'
 import Textarea from '@cloudscape-design/components/textarea'
 import { borderRadiusContainer, colorBorderDividerDefault } from '@cloudscape-design/design-tokens'
 import { useState, type FormEvent } from 'react'
+import { sendContact } from '../api/client'
 import type { ContactRequest } from '../api/types'
+import { MOCK } from '../config'
+import { Turnstile, turnstileOn } from '../shell/Turnstile'
 import { InternalLink } from './nav'
 import { ROUTES, contactForm as t } from './strings'
 
@@ -31,7 +34,7 @@ export interface ContactFormProps {
   defaultKind?: ContactKind
 }
 
-type Errors = Partial<Record<'name' | 'email' | 'message' | 'consent', string>>
+type Errors = Partial<Record<'name' | 'email' | 'message' | 'consent' | 'bot', string>>
 
 const KIND_OPTIONS = (Object.keys(t.kinds) as ContactKind[]).map((value) => ({ value, label: t.kinds[value] }))
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -53,6 +56,10 @@ export function ContactForm({ onSubmit, defaultKind = 'contact' }: ContactFormPr
   const [errors, setErrors] = useState<Errors>({})
   const [submitted, setSubmitted] = useState(false)
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')
+  const [botToken, setBotToken] = useState('')
+  const [failure, setFailure] = useState('')
+  // The real build sends the message to the gateway. The mock build only simulates the send.
+  const live = Boolean(onSubmit) || !MOCK
 
   function set<K extends keyof ContactInput>(key: K, value: ContactInput[K]) {
     const next = { ...input, [key]: value }
@@ -65,15 +72,18 @@ export function ContactForm({ onSubmit, defaultKind = 'contact' }: ContactFormPr
     if (state === 'sending') return
     setSubmitted(true)
     const found = validate(input)
+    if (live && turnstileOn && !botToken) found.bot = t.errors.bot
     setErrors(found)
     if (Object.keys(found).length > 0) return
     setState('sending')
     try {
       const clean = { ...input, name: input.name.trim(), email: input.email.trim(), message: input.message.trim() }
       if (onSubmit) await onSubmit(clean)
+      else if (!MOCK) await sendContact({ kind: clean.kind, name: clean.name, email: clean.email, message: clean.message, turnstileToken: botToken })
       else await new Promise((resolve) => setTimeout(resolve, 600))
       setState('sent')
-    } catch {
+    } catch (err) {
+      setFailure(err instanceof Error && !MOCK ? err.message : '')
       setState('failed')
     }
   }
@@ -98,7 +108,7 @@ export function ContactForm({ onSubmit, defaultKind = 'contact' }: ContactFormPr
           }
         >
           {t.successText}
-          {!onSubmit && ` ${t.successSimulated}`}
+          {!live && ` ${t.successSimulated}`}
         </Alert>
       </div>
     )
@@ -108,7 +118,7 @@ export function ContactForm({ onSubmit, defaultKind = 'contact' }: ContactFormPr
     <div style={{ maxWidth: 720 }}>
       <form onSubmit={submit} noValidate>
         <Form
-          errorText={state === 'failed' ? t.errors.send : undefined}
+          errorText={state === 'failed' ? failure || t.errors.send : undefined}
           actions={
             <Button variant="primary" formAction="submit" loading={state === 'sending'} loadingText={t.sending}>
               {t.submit}
@@ -155,21 +165,27 @@ export function ContactForm({ onSubmit, defaultKind = 'contact' }: ContactFormPr
                 name="message"
               />
             </FormField>
-            <FormField label={t.antiBotLabel} stretch>
-              <div
-                style={{
-                  border: `1px dashed ${colorBorderDividerDefault}`,
-                  borderRadius: borderRadiusContainer,
-                  minHeight: 65,
-                  maxWidth: 300,
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <Box color="text-status-inactive" fontSize="body-s">
-                  {t.antiBotPlaceholder}
-                </Box>
-              </div>
+            <FormField label={t.antiBotLabel} errorText={errors.bot} stretch>
+              <Turnstile
+                onToken={setBotToken}
+                failedText={t.antiBotFailed}
+                placeholder={
+                  <div
+                    style={{
+                      border: `1px dashed ${colorBorderDividerDefault}`,
+                      borderRadius: borderRadiusContainer,
+                      minHeight: 65,
+                      maxWidth: 300,
+                      display: 'grid',
+                      placeItems: 'center',
+                    }}
+                  >
+                    <Box color="text-status-inactive" fontSize="body-s">
+                      {t.antiBotPlaceholder}
+                    </Box>
+                  </div>
+                }
+              />
             </FormField>
             <FormField errorText={errors.consent} stretch>
               <Checkbox checked={input.consent} onChange={({ detail }) => set('consent', detail.checked)}>

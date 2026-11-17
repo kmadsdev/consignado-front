@@ -14,10 +14,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSession, listMySessions, sendContact, startSession, type SessionView } from '../api/client'
 import { useAuth } from '../auth'
+import { MOCK, POLL } from '../config'
 import { useShell } from '../shell/context'
 import { CopyId, EngineStatus, Gate, Mono } from './common'
 import { dateTime, duration } from './format'
 import { T } from './strings'
+import { openWindow } from './windowLink'
 import { WindowSlots } from './WindowSlots'
 
 function RequestMore() {
@@ -76,7 +78,7 @@ function Aks() {
     if (!activeId) { setActive(null); return }
     const read = () => getSession(activeId).then((s) => { if (alive) setActive(s) }).catch(() => undefined)
     void read()
-    const t = window.setInterval(() => { void read(); void refresh() }, 5000)
+    const t = window.setInterval(() => { void read(); void refresh() }, POLL.me)
     return () => { alive = false; window.clearInterval(t) }
   }, [activeId, refresh])
 
@@ -92,7 +94,7 @@ function Aks() {
       const session = await startSession()
       await refresh()
       refreshEngine()
-      navigate(`/app/${session.id}/aks`)
+      openWindow(navigate, session.id, me?.email)
     } catch (err) {
       notify({ type: 'error', header: T.aks.startFailed, content: err instanceof Error ? err.message : T.common.failed })
     } finally { setStarting(false) }
@@ -103,7 +105,7 @@ function Aks() {
     action = (
       <SpaceBetween size="s">
         <Alert type="success" header={active?.state === 'starting' ? T.aks.activeStartingTitle : T.aks.activeTitle}
-          action={<Button variant="primary" onClick={() => navigate(`/app/${activeId}/aks`)}>{T.aks.openLive}</Button>}>
+          action={<Button variant="primary" onClick={() => openWindow(navigate, activeId, me.email)}>{T.aks.openLive}</Button>}>
           {T.aks.activeText} <Mono>{activeId}</Mono>
         </Alert>
       </SpaceBetween>
@@ -150,7 +152,7 @@ function Aks() {
             <WindowSlots me={me} activeExpiresAt={active?.expiresAt} activeStarting={active?.state === 'starting'} />
             {action}
             <Box color="text-body-secondary" fontSize="body-s">
-              {T.aks.urlNote} <Mono>https://cluster.consignado.kmads.dev/app/&lt;id&gt;/aks/</Mono>
+              {MOCK ? T.aks.urlNote : T.aks.urlNoteReal} <Mono>https://cluster.consignado.kmads.dev/app/&lt;id&gt;/aks/</Mono>
             </Box>
           </SpaceBetween>
         </Container>

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test src/api/__tests__/"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.29.1",

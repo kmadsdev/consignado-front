@@ -5,12 +5,15 @@ import type {
   AdminState, AdminUser, Agreement, ContactRequest, Contract, ContractStatus, Customer, Engine,
   EngineState, HostKind, LifecycleEvent, Margin, Me, Profile, RequestTrace, Session, Simulation,
 } from './types'
+import { ApiError } from './errors'
+import type { PageInfo } from './map'
 
 // ---- types that the contract does not have yet (listed in the report) ---------
 export type PersonaId = 'guest' | 'recruiter' | 'recruiter-new' | 'recruiter-held' | 'recruiter-spent' | 'admin'
 export type ContractAction = 'approve' | 'reject' | 'activate' | 'settle' | 'cancel'
 export type AdminUserAction = 'approve' | 'hold' | 'block' | 'grant-windows'
-export interface ApiResult<T> { data: T; trace: RequestTrace }
+/** `page` is set by the real client for a paged listing. */
+export interface ApiResult<T> { data: T; trace: RequestTrace; page?: PageInfo }
 export interface CustomerInput { agreementId: string; name: string; cpf: string; monthlyIncome: number }
 export interface SimulationInput { customerId: string; principal: number; termMonths: number }
 export interface SimulationResult { simulation: Simulation; margin: Margin; fitsMargin: boolean }
@@ -22,18 +25,9 @@ export interface AdminSession extends SessionView { userName: string; userEmail:
 export interface HostStatus { host: HostKind; state: 'warm' | 'cold' | 'stopped' | 'starting' | 'running' | 'paused'; lastMs?: number; lastAt?: string; lastCold?: boolean }
 export interface ActivityItem { id: string; ts: string; actor: string; text: string; host: HostKind }
 export interface Snapshot { asOf: string; customers: Customer[]; contracts: Contract[]; agreements: Agreement[] }
-export interface ContactInput { kind: ContactRequest['kind']; name: string; email: string; message: string }
+export interface ContactInput { kind: ContactRequest['kind']; name: string; email: string; message: string; turnstileToken?: string }
 
-export class ApiError extends Error {
-  status: number
-  trace?: RequestTrace
-  constructor(status: number, message: string, trace?: RequestTrace) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.trace = trace
-  }
-}
+export { ApiError }
 
 /** Which contract actions the state machine allows from each status. */
 export const CONTRACT_TRANSITIONS: Record<ContractStatus, Partial<Record<ContractAction, ContractStatus>>> = {
@@ -55,7 +49,7 @@ const STOP_MS = 15_000
 // [stage, compressed start (s), compressed end (s), real duration (ms), detail]
 const START_PLAN: Array<[string, number, number, number, string]> = [
   ['request', 0, 0.4, 42, 'POST /gateway/sessions'],
-  ['edge', 0.4, 0.9, 31, 'Front Door: WAF rules passed, rate limit ok'],
+  ['edge', 0.4, 0.9, 31, 'Cloudflare edge: WAF rules passed, rate limit ok'],
   ['gateway', 0.9, 1.5, 118, 'gateway function accepted the request'],
   ['identity', 1.5, 2.1, 84, 'Entra ID token is valid'],
   ['quota', 2.1, 2.6, 27, 'access window granted, budget ok'],
@@ -336,7 +330,7 @@ function buildTrace(host: HostKind, opts: TraceOptions): RequestTrace {
   const parts: Array<[string, number, string]> = []
   let cold = false
   parts.push(['request', rnd(4, 9), opts.label])
-  parts.push(['edge', rnd(11, 26), 'Front Door: WAF rules passed'])
+  parts.push(['edge', rnd(11, 26), 'Cloudflare edge: WAF rules passed'])
   parts.push(['gateway', rnd(14, 38), 'gateway function routed the call'])
   if (opts.staticOnly) {
     parts.push(['response', rnd(6, 14), '200, masked snapshot from Blob Storage'])
@@ -431,7 +425,7 @@ export async function getMe(): Promise<Me | null> {
   const u = currentUser()
   return u ? toMe(u) : null
 }
-export async function saveProfile(p: Profile): Promise<Me> {
+export async function saveProfile(p: Profile, _extra?: { turnstileToken?: string }): Promise<Me> {
   await sleep(rnd(180, 320))
   const u = requireUser()
   if (!p.consent) throw new ApiError(422, 'Consent is necessary.')
@@ -499,7 +493,7 @@ export async function listMySessions(): Promise<SessionView[]> {
 }
 export async function sendContact(input: ContactInput): Promise<ContactRequest> {
   await sleep(rnd(250, 480))
-  const req: ContactRequest = { id: `req-${String(++db.seq).padStart(4, '0')}`, ...input, createdAt: iso(Date.now()) }
+  const req: ContactRequest = { id: `req-${String(++db.seq).padStart(4, '0')}`, kind: input.kind, name: input.name, email: input.email, message: input.message, createdAt: iso(Date.now()) }
   db.contacts.unshift(req)
   persist()
   return req

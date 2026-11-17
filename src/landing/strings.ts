@@ -53,6 +53,8 @@ export const landing = {
     ],
     primaryAction: 'Try the simulation',
     secondaryAction: 'Sign in to run it on Kubernetes',
+    signInNote:
+      'Sign-in is by Microsoft Entra ID. New here? On the Microsoft page, select "No account? Create one" and confirm your email with a one-time code.',
   },
 
   diagram: {
@@ -140,7 +142,7 @@ export const landing = {
     steps: [
       { service: 'Browser', text: 'sends the call over HTTPS to one public hostname.' },
       {
-        service: 'Azure Front Door',
+        service: 'Cloudflare edge (CDN + WAF + TLS)',
         text: 'ends the TLS connection, applies the firewall (WAF) rules and the rate limit, and drops what fails.',
       },
       {
@@ -169,14 +171,16 @@ export const landing = {
       },
     ],
     pageLoadLabel: 'Page load',
-    pageLoad: 'Browser, then Azure Front Door (CDN and WAF), then Blob Storage (static site).',
+    pageLoad: 'Browser, then the Cloudflare edge (CDN + WAF + TLS), then Blob Storage (static site).',
+    edgeNote:
+      'The edge is Cloudflare because Azure Front Door is not available to student subscriptions. The Terraform code for Front Door is in the repository.',
   },
 
   security: {
     title: 'Security and limits, stated plainly',
     description: 'What protects the demo, and what stops it.',
     items: [
-      { lead: 'Edge.', text: 'A web application firewall and rate limits at Azure Front Door.' },
+      { lead: 'Edge.', text: 'A web application firewall and rate limits at the Cloudflare edge.' },
       {
         lead: 'No public hosts.',
         text: 'The cluster and the API hosts have no public endpoint. Only the gateway is exposed.',
@@ -203,7 +207,7 @@ export const landing = {
     groups: [
       { label: 'API', items: ['Java 21', 'Spring Boot 3', 'PostgreSQL 16'] },
       { label: 'Hosts', items: ['Azure Functions', 'AKS'] },
-      { label: 'Edge and storage', items: ['Front Door', 'Blob Storage'] },
+      { label: 'Edge and storage', items: ['Cloudflare edge', 'Blob Storage'] },
       { label: 'Identity and secrets', items: ['Entra ID', 'Key Vault'] },
       { label: 'Infrastructure and deploys', items: ['Terraform', 'GitHub Actions'] },
       { label: 'Front end', items: ['React', 'Cloudscape'] },
@@ -233,6 +237,7 @@ export const contactForm = {
   messageConstraint: 'Between 10 and 2000 characters.',
   antiBotLabel: 'Anti-bot check',
   antiBotPlaceholder: 'The anti-bot widget loads here.',
+  antiBotFailed: 'The anti-bot check did not load. Check that challenges.cloudflare.com is not blocked, then load the page again.',
   consentBefore: 'I agree that this message and my contact data are processed as the ',
   consentLink: 'privacy notice',
   consentAfter: ' describes.',
@@ -245,6 +250,7 @@ export const contactForm = {
     messageLong: 'Write 2000 characters at most.',
     consent: 'Your agreement is necessary to send the message.',
     send: 'The message was not sent. Try again in a moment.',
+    bot: 'Complete the anti-bot check to send the message.',
   },
   successTitle: 'Message sent',
   successText: 'The owner received your message and will answer by email.',

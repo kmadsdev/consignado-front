@@ -19,6 +19,7 @@ import { useShell } from '../shell/context'
 import { EngineStatus, Gate, Mono, useNow } from './common'
 import { duration, relativeTime } from './format'
 import { T } from './strings'
+import { openWindow } from './windowLink'
 import { WindowSlots } from './WindowSlots'
 
 function Overview() {
@@ -81,7 +82,7 @@ function Overview() {
                 description={T.overview.windowsHint(left, me.windowsMax)}
                 actions={
                   activeId
-                    ? <Button variant="primary" onClick={() => navigate(`/app/${activeId}/aks`)}>{T.overview.openLive}</Button>
+                    ? <Button variant="primary" onClick={() => openWindow(navigate, activeId, me?.email)}>{T.overview.openLive}</Button>
                     : <Button onClick={() => navigate('/app/aks')}>{left > 0 ? T.overview.startWindow : T.overview.requestMore}</Button>
                 }
               >
@@ -119,7 +120,7 @@ function Overview() {
           </Container>
           <Container
             fitHeight
-            header={<Header variant="h2" description={T.overview.aksHint} actions={<Button onClick={() => navigate(activeId ? `/app/${activeId}/aks` : '/app/aks')}>{activeId ? T.overview.openLive : T.overview.openAks}</Button>}>{T.host.aks}</Header>}
+            header={<Header variant="h2" description={T.overview.aksHint} actions={<Button onClick={() => (activeId ? openWindow(navigate, activeId, me?.email) : navigate('/app/aks'))}>{activeId ? T.overview.openLive : T.overview.openAks}</Button>}>{T.host.aks}</Header>}
           >
             <KeyValuePairs
               columns={3}
