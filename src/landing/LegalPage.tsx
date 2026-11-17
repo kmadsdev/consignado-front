@@ -5,7 +5,7 @@ import ContentLayout from '@cloudscape-design/components/content-layout'
 import Header from '@cloudscape-design/components/header'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import TextContent from '@cloudscape-design/components/text-content'
-import { InternalLink, NavRoot, PageFooter, Prose } from './nav'
+import { InternalLink, NavRoot, PageFooter } from './nav'
 import { NOTICE_DATE, common, privacy, terms, type LegalSection } from './strings'
 
 interface LegalPageProps {
@@ -20,7 +20,7 @@ function LegalPage({ title, description, alert, sections }: LegalPageProps) {
     <NavRoot>
       <ContentLayout
         defaultPadding
-        maxContentWidth={880}
+        maxContentWidth={660}
         header={
           <SpaceBetween size="m">
             <Header variant="h1" description={description}>
@@ -39,7 +39,6 @@ function LegalPage({ title, description, alert, sections }: LegalPageProps) {
       >
         <SpaceBetween size="l">
           <Container>
-            <Prose>
               <SpaceBetween size="xl">
                 {sections.map((section) => (
                   <section key={section.title}>
@@ -65,7 +64,6 @@ function LegalPage({ title, description, alert, sections }: LegalPageProps) {
                   </section>
                 ))}
               </SpaceBetween>
-            </Prose>
           </Container>
           <PageFooter showHome />
         </SpaceBetween>
