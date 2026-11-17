@@ -1,0 +1,20 @@
+{
+  // The edge of Consignado Cloud: one Cloudflare Worker in front of Azure.
+  // Azure Front Door is refused on Azure for Students subscriptions, so the
+  // CDN, the TLS endpoint and the first filter live here. See edge/README.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "consignado-edge",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "consignado.kmads.dev", "custom_domain": true },
+    { "pattern": "cluster.consignado.kmads.dev", "custom_domain": true }
+  ],
+  "vars": {
+    "STATIC_ORIGIN": "https://stconsigwebkm01.z50.web.core.windows.net",
+    "GATEWAY_ORIGIN": "https://func-consignado-gw-km01.azurewebsites.net"
+  },
+  "observability": { "enabled": true }
+  // Secret (wrangler secret put EDGE_KEY): the shared key that the gateway checks.
+}
