@@ -13,7 +13,7 @@ export interface Env {
 const MAX_BODY_BYTES = 64 * 1024
 const API_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH'])
 // Request headers that the gateway needs. Everything else stays at the edge.
-const FORWARD = ['accept', 'accept-language', 'authorization', 'content-type', 'x-fingerprint']
+const FORWARD = ['accept', 'accept-language', 'authorization', 'content-type', 'idempotency-key', 'x-fingerprint']
 
 const CSP = [
   "default-src 'self'",
