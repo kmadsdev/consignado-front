@@ -622,9 +622,9 @@ export function createContract(host: HostKind, simulationId: string) {
 }
 const ACTION_PAST: Record<ContractAction, string> = { approve: 'approved', reject: 'rejected', activate: 'activated', settle: 'settled', cancel: 'cancelled' }
 export function contractAction(host: HostKind, id: string, action: ContractAction) {
-  // Activation writes one row per installment (24 to 96 rows) and the outbox event: about 4 to 5 s, not a cold start.
+  // Activation writes the installment schedule (two rows per month) and the outbox event: about 4 to 5 s, not a cold start.
   const sqlOpts: Partial<TraceOptions> = action === 'activate'
-    ? { sql: { select: 3, insert: (db.contracts.find((c) => c.id === id)?.termMonths ?? 48) + 1, update: 1 }, dbMs: [3900, 4700], appMs: [120, 260] }
+    ? { sql: { select: 3, insert: 2 * (db.contracts.find((c) => c.id === id)?.termMonths ?? 48) + 2, update: 1 }, dbMs: [3900, 4700], appMs: [120, 260] }
     : { sql: { select: 2, update: 1, insert: 1 }, dbMs: [36, 80] }
   return call(host, `POST /api/v1/contracts/${id}/${action}`, () => {
     requireWriter()

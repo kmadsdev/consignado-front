@@ -77,7 +77,7 @@ export function InspectorContent() {
     ? (
       <SpaceBetween size="s">
         <Header variant="h3">{I.clusterTitle}</Header>
-        <LifecycleReplay events={clusterRun.events} runKey={`drawer-${clusterRun.key}`} height={360} autoPlay={false} />
+        <LifecycleReplay events={clusterRun.events} runKey={`drawer-${clusterRun.key}`} autoPlay={false} showDiagram={false} />
       </SpaceBetween>
     )
     : <Box color="text-body-secondary">{I.clusterEmpty}</Box>

@@ -10,7 +10,7 @@ export const en = {
   stage: {
     request: 'browser', edge: 'edge', gateway: 'gateway', identity: 'Entra ID', quota: 'quota', keyvault: 'Key Vault',
     'function-cold-start': 'cold start', 'jvm-start': 'JVM start', 'functions-host': 'Functions host', 'load-balancer': 'load balancer',
-    app: 'app', database: 'database', response: 'response',
+    app: 'app', database: 'database', response: 'host and response',
   } as Record<string, string>,
   /** Long stage names of the checklist table. */
   stageLong: {
@@ -50,6 +50,7 @@ export const en = {
     database: 'Azure Database for PostgreSQL flexible server: every write and every read of the shared data goes here.',
   } as Record<string, string>,
   close: 'Close',
+  liveMetric: (key: string, value: string) => (key === 'latency-avg' ? `avg ${value} (5 min)` : key === 'replicas' ? `${value} pods ready` : `CPU ${value}`),
   cached: 'cached',
   answered: 'answered',
   otherPod: 'other pod',

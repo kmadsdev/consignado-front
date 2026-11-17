@@ -16,7 +16,7 @@ import { TopBar } from './TopBar'
 const LIVE_WINDOW = /^\/app\/[^/]+\/aks\/?$/
 const SIZE_KEY = 'consignado.inspector.width'
 function readDrawerSize(): number {
-  try { const n = Number(localStorage.getItem(SIZE_KEY)); return n >= 280 && n <= 2000 ? n : 640 } catch { return 640 }
+  try { const n = Number(localStorage.getItem(SIZE_KEY)); return n >= 280 && n <= 2000 ? n : 720 } catch { return 720 }
 }
 function saveDrawerSize(n: number) {
   try { localStorage.setItem(SIZE_KEY, String(Math.round(n))) } catch { /* ignore */ }
