@@ -1,5 +1,6 @@
 // Every user-visible string of the signed-in pages, in Brazilian Portuguese. Same shape as the English table.
 import type { en } from './strings.ts'
+import { windowCostText } from './cost.ts'
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
@@ -27,7 +28,7 @@ export const ptBR: typeof en = {
     label: { stopped: 'Parado', starting: 'Iniciando', running: 'Em execução', stopping: 'Parando', cooldown: 'Em cooldown', paused: 'Pausado' },
     meaning: {
       stopped: 'O cluster está desligado e não gera custo de computação. Ele inicia quando um recrutador abre uma janela de acesso. O host serverless responde o tempo todo.',
-      starting: 'Um recrutador abriu uma janela de acesso. O cluster está no cold start, que leva de 4 a 6 minutos.',
+      starting: 'Um recrutador abriu uma janela de acesso. O cluster está no cold start, que leva cerca de 7 minutos (medido: 7 min 13 s).',
       running: 'O cluster está ligado e responde às requisições. Ele para quando a última janela de acesso termina.',
       stopping: 'A última janela de acesso terminou. O cluster está parando e o custo de computação vai a zero.',
       cooldown: 'O cluster parou há pouco. Uma nova janela poderá ser iniciada em breve.',
@@ -292,11 +293,11 @@ export const ptBR: typeof en = {
     whatStarts: 'O que sobe',
     whatStartsText: 'O control plane do AKS, 1 VM de node, 2 pods da API Spring Boot e o load balancer interno.',
     coldStart: 'Cold start',
-    coldStartText: 'De 4 a 6 minutos para o cluster, depois cerca de 50 s até os pods ficarem prontos. Você vê cada etapa ao vivo.',
+    coldStartText: 'Cerca de 7 minutos (medido: 7 min 13 s): 4 min 26 s para o control plane, 2 min 13 s para o node, 26 s para o Spring Boot e o banco de dados, 8 s para o load balancer. Você vê cada etapa ao vivo.',
     window: 'Janela',
     windowText: (minutes: number) => `${minutes} minutos. A contagem começa quando o cluster fica pronto, não quando você clica no botão.`,
     cost: 'Custo para o responsável',
-    costText: 'Cerca de US$ 0,03 a 0,05 por janela. Um cluster parado não gera custo de computação. Cada conta tem 3 janelas.',
+    costText: `Cerca de US$ ${windowCostText(',')} por janela. Um cluster parado não gera custo de computação. Cada conta tem 3 janelas.`,
     yours: 'Suas janelas',
     yoursHint: (used: number, max: number) => `${used} de ${max} usadas.`,
     engineIs: 'Cluster:',
@@ -346,15 +347,20 @@ export const ptBR: typeof en = {
     countdownRuns: (time: string) => `Termina em ${time}.`,
     starting: 'Inicialização do cluster',
     startingHint: 'A requisição está a caminho.',
-    compressedNote: 'Prévia do design: a inicialização é reproduzida em 40 s. As durações das etapas mostram o tamanho real (4 a 6 minutos).',
+    compressedNote: 'Prévia do design: a inicialização é reproduzida em 40 s. As durações das etapas mostram o tamanho real (cerca de 7 minutos (medido: 7 min 13 s)).',
     lastMinute: 'Falta menos de um minuto. O cluster para no zero.',
-    realStartNote: (elapsed: string, done: number, total: number) => `Decorrido: ${elapsed}. Etapa ${done} de ${total}. A inicialização real de um cluster leva de 4 a 6 minutos, às vezes mais. Esta página lê os sinais reais do cluster a cada 2 segundos. Você pode ficar aqui ou voltar depois: a janela espera por você.`,
+    realStartNote: (elapsed: string, done: number, total: number) => `Decorrido: ${elapsed}. Etapa ${done} de ${total}. A inicialização real de um cluster leva cerca de 7 minutos (medido: 7 min 13 s), às vezes mais. Esta página lê os sinais reais do cluster a cada 2 segundos. Você pode ficar aqui ou voltar depois: a janela espera por você.`,
     realReadyNote: 'Esta página lê o estado da janela a cada 10 segundos.',
     failedStartTitle: 'O cluster não ficou pronto',
     failedStartText: 'A inicialização não chegou ao estado pronto a tempo, e por isso o cluster foi parado. Esta tentativa não consumiu nenhuma das suas janelas. Você pode tentar de novo depois do cooldown.',
     failedStage: 'Última etapa',
     elapsed: 'Decorrido',
     pollProblem: 'A última leitura do estado da janela falhou. A página tenta de novo.',
+    end: 'Encerrar a janela agora',
+    endTitle: 'Encerrar esta janela agora?',
+    endText: 'A contagem para e o cluster é desligado alguns minutos depois. A janela conta como usada: ela não é devolvida.',
+    endConfirm: 'Encerrar a janela',
+    endNotAvailable: 'Encerrar uma janela antes do fim ainda não está disponível. A janela termina quando a contagem chega a zero.',
     state: 'Estado',
     ready: 'Pronto: os pods respondem',
     coldStart: 'Tempo até ficar pronto',

@@ -33,7 +33,7 @@ export function TopBar() {
   }, [])
 
   const engineState = engine?.state ?? 'stopped'
-  const engineLabel = engineState === 'paused' && engine?.pausedReason ? S.engine.pausedBy[engine.pausedReason] : S.engine.states[engineState]
+  const engineLabel = engine?.paused && engineState !== 'paused' ? S.engine.pausedNoNew : engineState === 'paused' && engine?.pausedReason ? S.engine.pausedBy[engine.pausedReason] : S.engine.states[engineState]
   const utilities: TopNavigationProps.Utility[] = [
     {
       type: 'button',

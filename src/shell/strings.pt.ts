@@ -12,6 +12,7 @@ export const ptBR: typeof en = {
       stopped: 'parado', starting: 'iniciando', running: 'em execução', stopping: 'parando', cooldown: 'em cooldown', paused: 'pausado',
     },
     pausedBy: { budget: 'pausado (limite do orçamento)', admin: 'pausado (pelo responsável)' },
+    pausedNoNew: 'pausado: sem novas janelas',
   },
   metaDescription: 'Consignado Cloud: uma API de empréstimo consignado em dois hosts do Azure, com cada requisição desenhada ao vivo. Demonstração técnica com dados sintéticos.',
   lang: { label: 'EN | PT', title: 'Idioma', en: 'English', pt: 'Português (Brasil)' },

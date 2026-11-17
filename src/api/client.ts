@@ -39,6 +39,8 @@ export const adminGetState: typeof mock.adminGetState = MOCK ? mock.adminGetStat
 export const adminSetPaused: typeof mock.adminSetPaused = MOCK ? mock.adminSetPaused : real.adminSetPaused
 export const adminStopEngine: typeof mock.adminStopEngine = MOCK ? mock.adminStopEngine : real.adminStopEngine
 export const adminListContacts: typeof mock.adminListContacts = MOCK ? mock.adminListContacts : real.adminListContacts
+export const endSession: typeof mock.endSession = MOCK ? mock.endSession : real.endSession
+export const adminDeleteUser: typeof mock.adminDeleteUser = MOCK ? mock.adminDeleteUser : real.adminDeleteUser
 export const adminSetWindowSettings: typeof mock.adminSetWindowSettings = MOCK ? mock.adminSetWindowSettings : real.adminSetWindowSettings
 export const getStatus: (host: HostKind) => Promise<PlatformStatus | null> = MOCK ? mock.getStatus : real.getStatus
 

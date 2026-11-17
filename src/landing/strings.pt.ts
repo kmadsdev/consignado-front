@@ -67,7 +67,7 @@ export const ptBR: typeof en = {
         facts: [
           { label: 'Disponibilidade', value: 'Iniciado para uma janela de acesso de 15 minutos' },
           { label: 'Quem pode usar', value: 'Usuários logados, 3 janelas cada' },
-          { label: 'Cold start', value: 'De 4 a 6 min', mono: true },
+          { label: 'Cold start', value: 'Cerca de 7 min (medido: 7 min 13 s)', mono: true },
           { label: 'Progresso da inicialização', value: 'Mostrado etapa por etapa' },
           { label: 'Quando a janela termina', value: 'O cluster é parado' },
           { label: 'Rede', value: 'Load balancer interno, 2 pods' },
