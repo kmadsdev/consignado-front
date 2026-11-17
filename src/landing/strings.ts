@@ -299,15 +299,16 @@ export const privacy = {
     {
       title: '5. How long the data is kept',
       items: [
-        'Account data: until you ask for its deletion, or after 12 months without use.',
-        'Security logs: 90 days.',
+        'Account data: until you ask for deletion or 12 months without use.',
+        'Security logs: up to 90 days.',
+        'In this version the owner deletes them by hand on a schedule.',
       ],
     },
     {
       title: '6. Who processes the data',
       items: [
         'Microsoft Azure: hosting, database, sign-in (Microsoft Entra ID) and logs.',
-        'Cloudflare: DNS and the anti-bot check on forms.',
+        'Cloudflare: all traffic of the site goes through Cloudflare (DNS, TLS, CDN, firewall rules and the anti-bot check on forms). Cloudflare sees the IP address and the requests of each visitor.',
       ],
       after: [
         'These companies act as processors. Their data centers can be outside Brazil. The data is not shared with any other party.',

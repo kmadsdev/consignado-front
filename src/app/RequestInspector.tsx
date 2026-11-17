@@ -11,7 +11,7 @@ import { duration } from './format'
 import { T } from './strings'
 
 /** The trace of one request: where it went, how long each stage took, cold or warm. */
-export function RequestInspector({ record, diagramHeight = 300 }: { record: TraceRecord; diagramHeight?: number }) {
+export function RequestInspector({ record, diagramHeight = 300, stacked = false }: { record: TraceRecord; diagramHeight?: number; stacked?: boolean }) {
   const { trace } = record
   const events = useReplay(trace.events, record.at)
   return (
@@ -39,7 +39,7 @@ export function RequestInspector({ record, diagramHeight = 300 }: { record: Trac
         ]}
       />
       {trace.cold && <Box color="text-body-secondary" fontSize="body-s">{T.inspector.coldNote}</Box>}
-      <Grid gridDefinition={[{ colspan: { default: 12, s: 8 } }, { colspan: { default: 12, s: 4 } }]}>
+      <Grid gridDefinition={stacked ? [{ colspan: 12 }, { colspan: 12 }] : [{ colspan: { default: 12, s: 8 } }, { colspan: { default: 12, s: 4 } }]}>
         <div className="diagram-frame">
           <ArchitectureDiagram view={trace.host} events={events} height={diagramHeight} />
         </div>

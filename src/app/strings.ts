@@ -291,7 +291,7 @@ export const T = {
     window: 'Window',
     windowText: '15 minutes. The countdown starts when the engine is ready, not when you press the button.',
     cost: 'Cost to the owner',
-    costText: 'About US$ 0.11 for one window. A stopped cluster costs nothing for compute. Each account gets 3 windows.',
+    costText: 'About US$ 0.03 to 0.05 for one window. A stopped cluster costs nothing for compute. Each account gets 3 windows.',
     yours: 'Your windows',
     yoursHint: (used: number, max: number) => `${used} of ${max} used.`,
     engineIs: 'Engine:',
