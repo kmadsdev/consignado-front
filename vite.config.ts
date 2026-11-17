@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
-      // Second entry: the review page of the diagrams (owned by the diagram worker).
-      input: { main: 'index.html', 'diagram-demo': 'diagram-demo.html' },
+      // index.html is the product. The two demo pages preview one area each.
+      input: { main: 'index.html', 'diagram-demo': 'diagram-demo.html', 'landing-demo': 'landing-demo.html' },
     },
   },
 })
