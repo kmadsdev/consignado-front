@@ -109,7 +109,8 @@ test('trace header: a missing or broken value gives null, a bad event is dropped
   assert.equal(parseTrace('%%%not-base64%%%'), null)
   assert.equal(parseTrace(Buffer.from('{"host":"aks"}').toString('base64url')), null)
   const odd = Buffer.from(JSON.stringify({ totalMs: '12', events: [null, { stage: 'gateway', status: 'weird', ms: 'x' }] })).toString('base64url')
-  assert.deepEqual(parseTrace(odd, 'aks'), { host: 'aks', cold: false, totalMs: 12, events: [{ ts: parseTrace(odd, 'aks').events[0].ts, stage: 'gateway', status: 'done' }] })
+  const parsed = parseTrace(odd, 'aks')
+  assert.deepEqual(parsed, { host: 'aks', cold: false, totalMs: 12, events: [{ ts: parsed.events[0].ts, stage: 'gateway', status: 'done' }] })
 })
 
 test('error bodies: gateway {code, message} and API problem details', () => {

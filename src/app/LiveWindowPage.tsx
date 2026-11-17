@@ -214,16 +214,14 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
           </Container>
         )}
 
-        <Grid gridDefinition={[{ colspan: { default: 12, m: 8 } }, { colspan: { default: 12, m: 4 } }]}>
-          <Container fitHeight header={<Header variant="h2" description={T.live.diagramHint}>{T.live.diagram}</Header>}>
-            <div className="diagram-frame">
-              <ArchitectureDiagram view="aks" events={session.events} height={460} />
-            </div>
-          </Container>
-          <Container fitHeight header={<Header variant="h2" description={T.live.timelineHint}>{T.live.timeline}</Header>}>
-            <LifecycleTimeline view="aks" events={session.events} />
-          </Container>
-        </Grid>
+        <Container header={<Header variant="h2" description={T.live.diagramHint}>{T.live.diagram}</Header>}>
+          <div className="diagram-frame">
+            <ArchitectureDiagram view="aks" events={session.events} height={640} />
+          </div>
+        </Container>
+        <Container header={<Header variant="h2" description={T.live.timelineHint}>{T.live.timeline}</Header>}>
+          <LifecycleTimeline view="aks" events={session.events} />
+        </Container>
 
         {session.state === 'ready' && me && (
           <SpaceBetween size="m">
