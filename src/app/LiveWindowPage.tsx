@@ -21,6 +21,7 @@ import { CenteredSpinner, CopyId, Gate, Mono, useNow } from './common'
 import { clock, dateTime, duration } from './format'
 import { Operations } from './Operations'
 import { T } from './strings'
+import { WindowPreview } from './WindowPreview'
 
 const WINDOW_MS = WINDOW_MINUTES * 60_000
 /** The stages of a cluster start, from the request to the first answer of the API. */
@@ -179,6 +180,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
             </Grid>
           </Container>
         )}
+        {(session.state === 'starting' || session.state === 'ready') && <WindowPreview ready={session.state === 'ready'} />}
         {session.state === 'ended' && (
           <Container header={<Header variant="h2" description={T.live.endedHint}>{T.live.endedTitle}</Header>}>
             <SpaceBetween size="l">

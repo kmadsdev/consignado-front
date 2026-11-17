@@ -231,8 +231,9 @@ export async function contractAction(host: HostKind, id: string, action: Contrac
 }
 
 // ---- guest calls ----------------------------------------------------------------------
-export async function previewSimulation(input: PreviewInput): Promise<ApiResult<PreviewResult>> {
-  const res = await domain<ApiPreview>('functions', 'POST', '/simulations/preview', previewToApi(input), { auth: 'optional' })
+/** `host` = `aks` sends it to the pods of the open window (the gateway needs the token of the window owner). */
+export async function previewSimulation(input: PreviewInput, host: HostKind = 'functions'): Promise<ApiResult<PreviewResult>> {
+  const res = await domain<ApiPreview>(host, 'POST', '/simulations/preview', previewToApi(input), { auth: host === 'aks' ? 'required' : 'optional' })
   return { data: toPreview(res.data), trace: res.trace, label: res.label }
 }
 export async function getSnapshot(): Promise<ApiResult<Snapshot>> {
