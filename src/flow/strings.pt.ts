@@ -47,6 +47,8 @@ export const ptBR: typeof en = {
   },
   close: 'Fechar',
   liveMetric: (key: string, value: string) => (key === 'latency-avg' ? `média ${value} (5 min)` : key === 'replicas' ? `${value} pods prontos` : `CPU ${value}`),
+  edgeNetwork: 'edge + rede',
+  noInstanceId: 'id da instância não informado pelo host do Functions',
   cached: 'em cache',
   answered: 'respondeu',
   otherPod: 'outro pod',

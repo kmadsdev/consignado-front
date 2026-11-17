@@ -52,13 +52,16 @@ export function podsOf(status: PlatformStatus | null | undefined): { podCount?: 
   return { podCount: replicas ?? pods.instances?.length, podNames: pods.instances }
 }
 
-/** The commit of the build that answers, from `build` of the status answer. Only a hex sha is a commit. */
-export function buildCommit(status: PlatformStatus | null | undefined): string | undefined {
-  const b = status?.build
+/** The build that answers: `build` of a service (gateway3: `pods`) or of the whole answer. Only a hex sha is a commit. */
+export function buildOf(status: PlatformStatus | null | undefined): { commit: string; repository: string } | undefined {
+  const svc = status?.services.find((s) => s.build && s.build.commit)
+  const b = svc?.build ?? status?.build
   if (!b) return undefined
-  const raw = typeof b === 'string' ? b : b.commit ?? b.sha ?? b.tag ?? b.image
+  const raw = typeof b === 'string' ? b : b.commit ?? ('sha' in b ? b.sha : undefined) ?? ('tag' in b ? b.tag : undefined) ?? ('image' in b ? b.image : undefined)
   const m = raw ? /([0-9a-f]{7,40})$/i.exec(raw.trim()) : null
-  return m ? m[1].toLowerCase() : undefined
+  if (!m) return undefined
+  const repo = typeof b === 'object' && 'repository' in b && typeof b.repository === 'string' && /^[\w.-]+\/[\w.-]+$/.test(b.repository) ? b.repository : 'kmadsdev/consignado-api'
+  return { commit: m[1].toLowerCase(), repository: repo }
 }
 
 export function metricText(m: Metric, noData: string, decimal: (n: number, d?: number) => string): string {

@@ -8,6 +8,8 @@ import { ShellContext, type ClusterRun, type InspectorTab, type Notice, type She
 
 const OPEN_KEY = 'consignado.inspector.open'
 function readOpen(): boolean {
+  // On a phone the drawer covers the page (AppLayout design): it never opens by itself there.
+  if (typeof window !== 'undefined' && window.innerWidth <= 688) return false
   try { return localStorage.getItem(OPEN_KEY) === '1' } catch { return false }
 }
 
