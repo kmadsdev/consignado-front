@@ -66,14 +66,18 @@ function layout(model: FlowModel, width: number) {
     height = model.nodes.some((n) => n.place === 'below' || n.place === 'pod-b') ? yB + ICON_R + TEXT_H + 8 : yMain + ICON_R + TEXT_H + 12
   } else {
     const rowH = 124
-    const side = Math.max(108, Math.min(170, width / 2 - 64))
+    // Three columns: side nodes left and right of the main path. Narrow screens make every node narrower.
+    const side = Math.max(70, Math.min(170, width / 3))
+    const nw = Math.min(NODE_W, side - 4)
     const x = width / 2
+    const twoPods = model.nodes.some((m) => m.place === 'pod-b')
     for (const n of model.nodes) {
       const y = 28 + n.col * rowH
-      if (n.place === 'main' || n.place === 'pod-a') placed.set(n.id, { node: n, x: n.place === 'pod-a' && model.nodes.some((m) => m.place === 'pod-b') ? x - side / 2 : x, y, w: NODE_W })
-      else if (n.place === 'above') placed.set(n.id, { node: n, x: x - side, y, w: Math.min(NODE_W, side - 8) })
-      else if (n.place === 'below') placed.set(n.id, { node: n, x: x + side, y, w: Math.min(NODE_W, side - 8) })
-      else placed.set(n.id, { node: n, x: x + side / 2, y, w: Math.min(NODE_W, side - 8) })
+      if (n.place === 'main') placed.set(n.id, { node: n, x, y, w: Math.min(NODE_W, width - 8, twoPods ? NODE_W : 2 * side - 4) })
+      else if (n.place === 'pod-a') placed.set(n.id, { node: n, x: twoPods ? x - side / 2 : x, y, w: twoPods ? nw : NODE_W })
+      else if (n.place === 'above') placed.set(n.id, { node: n, x: x - side, y, w: nw })
+      else if (n.place === 'below') placed.set(n.id, { node: n, x: x + side, y, w: nw })
+      else placed.set(n.id, { node: n, x: x + side / 2, y, w: nw })
     }
     height = 28 + (model.main.length - 1) * rowH + ICON_R + TEXT_H + 10
   }
@@ -218,7 +222,7 @@ function FlowNodeView({ p, model, state, status, dbDetail }: { p: Placed; model:
       {n.stages.length > 0 && (
         <ul className="fl-pop-list">
           {model.segments.filter((s) => n.stages.includes(s.stage)).map((s) => (
-            <li key={s.stage}><span>{F.stageLong[s.stage] ?? s.stage}</span><span className="mono">{duration(s.ms)}</span></li>
+            <li key={s.stage}><span>{F.stageLong[s.stage] ?? s.stage}</span><span className="mono">{s.timed ? duration(s.ms) : '-'}</span></li>
           ))}
         </ul>
       )}

@@ -14,7 +14,7 @@ import { decimal, duration } from '../app/format'
 import { T as AppT } from '../app/strings'
 import { FlowDiagram, FLOW_VARS } from './FlowDiagram'
 import { buildFlow, statementKinds, type DbInfo, type FlowModel } from './model'
-import { buildCommit, podsOf, serviceOf } from './status'
+import { buildOf, podsOf, serviceOf } from './status'
 import type { CallRecord } from './store'
 import { F } from './strings'
 import { Transport, useReplay } from './Transport'
@@ -76,7 +76,7 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
   const trace = record.trace
   const speed = speedOf(trace)
   const edgeMs = record.browserMs !== undefined ? Math.max(0, record.browserMs - trace.totalMs) : undefined
-  const commit = buildCommit(status)
+  const build = buildOf(status)
   const total = model.totalMs || model.durationMs
   return (
     <SpaceBetween size="l">
@@ -105,8 +105,8 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
           { label: D.edgeNetwork, value: <span title={D.edgeHint}>{mono(edgeMs !== undefined ? `${duration(edgeMs)}${record.browserMs ? ` (${decimal((edgeMs / record.browserMs) * 100, 0)}%)` : ''}` : '-')}</span> },
           {
             label: D.build,
-            value: commit
-              ? <Link external href={`https://github.com/kmadsdev/consignado-api/commit/${commit}`}>{mono(commit.slice(0, 12))}</Link>
+            value: build
+              ? <Link external href={`https://github.com/${build.repository}/commit/${build.commit}`}>{mono(build.commit.slice(0, 12))}</Link>
               : D.noBuild,
           },
         ]}
@@ -122,7 +122,7 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
           { id: 'stage', header: D.colStage, cell: (s) => F.stageLong[s.stage] ?? s.stage, isRowHeader: true, minWidth: 160 },
           { id: 'status', header: D.colStatus, cell: (s) => <StatusIndicator type={STATUS_TYPE[s.status] ?? 'info'} iconAriaLabel={D.statusText[s.status] ?? s.status} />, width: 76 },
           { id: 'start', header: D.colStart, cell: (s) => mono(`+${duration(s.start)}`), width: 96 },
-          { id: 'ms', header: D.colDuration, cell: (s) => mono(duration(s.ms)), width: 96 },
+          { id: 'ms', header: D.colDuration, cell: (s) => (s.timed ? mono(duration(s.ms)) : '-'), width: 96 },
           {
             id: 'share', header: D.colShare, width: 140,
             cell: (s) => {
