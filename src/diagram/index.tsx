@@ -310,6 +310,7 @@ function DiagramInner({ view, events, onStageSelect, host, dark }: ArchitectureD
   const flow = useReactFlow()
   const wrap = useRef<HTMLDivElement>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [sized, setSized] = useState(false) // React Flow needs a container with a real size
 
   const info = useMemo(() => latestByStage(events), [events])
   const lane = host ?? inferHost(events.map((e) => e.stage))
@@ -378,7 +379,11 @@ function DiagramInner({ view, events, onStageSelect, host, dark }: ArchitectureD
     const el = wrap.current
     if (!el) return
     let raf = 0
-    const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit) })
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth > 0 && el.clientHeight > 0) setSized(true)
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(fit)
+    })
     ro.observe(el)
     return () => { ro.disconnect(); cancelAnimationFrame(raf) }
   }, [fit])
@@ -403,7 +408,7 @@ function DiagramInner({ view, events, onStageSelect, host, dark }: ArchitectureD
 
   return (
     <div ref={wrap} className="dg-canvas">
-      <ReactFlow
+      {sized && <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
@@ -427,7 +432,7 @@ function DiagramInner({ view, events, onStageSelect, host, dark }: ArchitectureD
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1} className="dg-dots" />
         <Controls showInteractive={false} position="bottom-left" />
-      </ReactFlow>
+      </ReactFlow>}
     </div>
   )
 }
