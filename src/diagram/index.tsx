@@ -10,6 +10,7 @@ import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator, { type StatusIndicatorProps } from '@cloudscape-design/components/status-indicator'
 import type { HostKind, LifecycleEvent, StageStatus } from '../api/types'
 import { anchor, getView, iconSize, inferHost, STAGES_OF, SVC_W, type EdgeDef, type EdgeKind, type GroupDef, type Pt, type SvcDef, type ViewDef } from './model'
+import { LOCALE } from '../i18n/lang.ts'
 import { STAGE_NAMES, UI } from './strings'
 import './diagram.css'
 
@@ -48,9 +49,10 @@ function combine(statuses: Array<StageStatus | undefined>, anyEvents: boolean): 
   return 'pending'
 }
 
+const SECONDS = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 export function formatMs(ms: number): string {
   if (ms < 1000) return `${Math.round(ms)} ms`
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)} s`
+  if (ms < 60_000) return `${SECONDS.format(ms / 1000)} s`
   const s = Math.round(ms / 1000)
   return `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`
 }
@@ -472,7 +474,7 @@ export function ArchitectureDiagram(props: ArchitectureDiagramProps) {
 export interface LifecycleTimelineProps { view: Exclude<DiagramView, 'overview'>; events: LifecycleEvent[] }
 
 const INDICATOR: Record<StageStatus, StatusIndicatorProps.Type> = { pending: 'pending', active: 'in-progress', done: 'success', error: 'error' }
-const clock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' })
+const clock = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' })
 
 export function LifecycleTimeline(props: LifecycleTimelineProps) {
   const info = useMemo(() => latestByStage(props.events), [props.events])

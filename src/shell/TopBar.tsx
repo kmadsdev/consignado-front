@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth, type PersonaId } from '../auth'
 import { MOCK } from '../config'
+import { useLang, type Lang } from '../i18n/index.tsx'
 import { useShell } from './context'
 import { GLYPH_SRC, MOON_ICON, SUN_ICON } from './Glyph'
 import { S } from './strings'
@@ -18,6 +19,7 @@ export function TopBar() {
   const navigate = useNavigate()
   const { me, persona, setPersona, signIn, signOut, resetDemoData } = useAuth()
   const { engine, notify } = useShell()
+  const { lang, setLang } = useLang()
   const [mode, setMode] = useState<ThemeMode>(() => initialTheme())
 
   useEffect(() => { setTheme(mode, false) }, [mode])
@@ -62,6 +64,17 @@ export function TopBar() {
         else if (id.startsWith('persona:')) setPersona(id.slice(8) as PersonaId)
       },
     }),
+    {
+      type: 'menu-dropdown',
+      text: S.lang.label,
+      title: S.lang.title,
+      ariaLabel: S.lang.title,
+      items: [
+        { id: 'en', text: S.lang.en, lang: 'en', itemType: 'checkbox', checked: lang === 'en' },
+        { id: 'pt-BR', text: S.lang.pt, lang: 'pt-BR', itemType: 'checkbox', checked: lang === 'pt-BR' },
+      ],
+      onItemClick: (e) => setLang(e.detail.id as Lang),
+    },
     {
       type: 'button',
       iconSvg: mode === 'dark' ? SUN_ICON : MOON_ICON,
