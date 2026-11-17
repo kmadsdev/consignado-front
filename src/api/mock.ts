@@ -331,7 +331,8 @@ function toMe(u: AdminUser): Me {
 // pages are seen with both.
 interface Sql { select?: number; insert?: number; update?: number; delete?: number }
 interface TraceOptions { label: string; errorAt?: string; errorDetail?: string; staticOnly?: boolean; sql?: Sql; appMs?: [number, number]; dbMs?: [number, number]; old?: boolean }
-const FN_INSTANCE = 'a3f9c1d27b4e'
+// The Functions custom handler sets no instance variable: the live API reports "local" there.
+const FN_INSTANCE = 'local'
 const PODS = ['consignado-api-5d897fb475-ffmb4', 'consignado-api-5d897fb475-q8kzn']
 /** The commit of the API image in the mock: a real commit of kmadsdev/consignado-api (main). */
 const MOCK_BUILD = '594601afdead4aef48db779d327174d5429f19d3'

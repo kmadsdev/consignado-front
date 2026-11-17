@@ -14,9 +14,12 @@ import { S } from './strings'
 import { TopBar } from './TopBar'
 
 const LIVE_WINDOW = /^\/app\/[^/]+\/aks\/?$/
-const SIZE_KEY = 'consignado.inspector.width'
+// v2: the first default (720 px) took half of a 1440 px screen; old saved widths are dropped.
+const SIZE_KEY = 'consignado.inspector.width.v2'
+const MIN_SIZE = 360
+const DEFAULT_SIZE = 460
 function readDrawerSize(): number {
-  try { const n = Number(localStorage.getItem(SIZE_KEY)); return n >= 280 && n <= 2000 ? n : 720 } catch { return 720 }
+  try { const n = Number(localStorage.getItem(SIZE_KEY)); return n >= MIN_SIZE && n <= 1600 ? n : DEFAULT_SIZE } catch { return DEFAULT_SIZE }
 }
 function saveDrawerSize(n: number) {
   try { localStorage.setItem(SIZE_KEY, String(Math.round(n))) } catch { /* ignore */ }
@@ -142,7 +145,7 @@ export function AppShell() {
           trigger: { iconName: 'search' },
           resizable: true,
           defaultSize: drawerSize,
-          onResize: (e) => { setDrawerSize(e.detail.size); saveDrawerSize(e.detail.size) },
+          onResize: (e) => { const n = Math.max(MIN_SIZE, e.detail.size); setDrawerSize(n); saveDrawerSize(n) },
           ariaLabels: { drawerName: F.inspector.title, closeButton: F.inspector.close, triggerButton: F.inspector.trigger, resizeHandle: F.inspector.resize },
         }]}
         activeDrawerId={inspectorOpen ? 'inspector' : null}

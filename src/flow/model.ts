@@ -108,7 +108,9 @@ export function buildFlow(trace: RequestTrace, opts: FlowOptions = {}): FlowMode
   const stages = stageMs(trace.events).filter((x) => !(x.stage === 'keyvault' && /not needed/i.test(x.detail ?? '')))
   const get = (id: string) => stages.find((s) => s.stage === id)
   const has = (id: string) => get(id) !== undefined
-  const instance = trace.api?.instance ?? instanceFromDetail(get('app')?.detail)
+  // "local" = the API host set no instance variable (Azure Functions custom handler): not a name to show.
+  const rawInstance = trace.api?.instance ?? instanceFromDetail(get('app')?.detail)
+  const instance = rawInstance && rawInstance !== 'local' ? rawInstance : undefined
   const detailed = has('app')
 
   const nodes: FlowNode[] = []
