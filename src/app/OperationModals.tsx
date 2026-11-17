@@ -6,6 +6,8 @@ import FormField from '@cloudscape-design/components/form-field'
 import Input from '@cloudscape-design/components/input'
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs'
 import Modal from '@cloudscape-design/components/modal'
+import { InlineRecord } from '../flow/InlineRecord'
+import type { CallRecord } from '../flow/store'
 import Select from '@cloudscape-design/components/select'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator from '@cloudscape-design/components/status-indicator'
@@ -35,7 +37,7 @@ export function MarginPairs({ margin }: { margin: Margin }) {
 }
 
 // ---- add customer -------------------------------------------------------------
-export function AddCustomerModal(props: { agreements: Agreement[]; busy: boolean; onDismiss: () => void; onSubmit: (input: CustomerInput) => void }) {
+export function AddCustomerModal(props: { agreements: Agreement[]; busy: boolean; onDismiss: () => void; onSubmit: (input: CustomerInput) => void; record?: CallRecord | null }) {
   const [agreementId, setAgreementId] = useState('')
   const [name, setName] = useState('')
   const [cpf, setCpf] = useState('')
@@ -96,6 +98,7 @@ export function AddCustomerModal(props: { agreements: Agreement[]; busy: boolean
               <Input value={income} onChange={(e) => setIncome(e.detail.value)} type="number" inputMode="decimal" placeholder="4500" />
             </FormField>
           </ColumnLayout>
+          <InlineRecord record={props.record} onOpen={props.onDismiss} />
         </SpaceBetween>
       </form>
     </Modal>
@@ -112,6 +115,7 @@ export function SimulateModal(props: {
   onDismiss: () => void
   onSubmit: (principal: number, termMonths: number) => void
   onCreateContract: (simulationId: string) => void
+  record?: CallRecord | null
 }) {
   const { customer, agreement, result } = props
   const [principal, setPrincipal] = useState('8000')
@@ -186,6 +190,7 @@ export function SimulateModal(props: {
             <Box color="text-body-secondary" fontSize="body-s">{T.simulate.saved(result.simulation.id)}</Box>
           </SpaceBetween>
         )}
+        <InlineRecord record={props.record} onOpen={props.onDismiss} />
       </SpaceBetween>
     </Modal>
   )
@@ -199,6 +204,7 @@ export function IncomeModal(props: {
   result: IncomeResult | null
   onDismiss: () => void
   onSubmit: (income: number) => void
+  record?: CallRecord | null
 }) {
   const { customer, result } = props
   const [income, setIncome] = useState(String(customer.monthlyIncome))
@@ -251,6 +257,7 @@ export function IncomeModal(props: {
             </div>
           </SpaceBetween>
         )}
+        <InlineRecord record={props.record} onOpen={props.onDismiss} />
       </SpaceBetween>
     </Modal>
   )

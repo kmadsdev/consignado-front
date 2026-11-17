@@ -113,6 +113,7 @@ export const ptBR: typeof en = {
     slowAks: 'Requisição em andamento.',
     failed: 'A requisição foi recusada',
     timing: (time: string, speed: 'cold' | 'slow' | 'warm') => `(${time}, ${speed === 'slow' ? 'chamada lenta' : speed})`,
+    tableLoads: (n: number) => `Carga das tabelas (${n} requisições)`,
     noDelete: 'Os dados são compartilhados entre todos os recrutadores. Eles só mudam pelo fluxo de trabalho: sem exclusão e sem edição livre.',
     customers: 'Clientes',
     customersHint: 'Pessoas vinculadas a um convênio. Selecione uma para simular um empréstimo ou alterar a renda.',

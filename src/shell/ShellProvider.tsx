@@ -3,17 +3,31 @@ import { getEngine } from '../api/client'
 import type { Engine } from '../api/types'
 import { useAuth } from '../auth'
 import { POLL } from '../config'
-import { ShellContext, type Notice, type ShellValue, type StoredNotice, type TraceRecord } from './context'
+import { requestStore, useRequests } from '../flow/session'
+import { ShellContext, type ClusterRun, type InspectorTab, type Notice, type ShellValue, type StoredNotice, type TraceRecord } from './context'
 
-/** State that every page shares: notifications, the engine state, the last request trace. */
+const OPEN_KEY = 'consignado.inspector.open'
+function readOpen(): boolean {
+  try { return localStorage.getItem(OPEN_KEY) === '1' } catch { return false }
+}
+
+/** State that every page shares: notifications, the engine state, the requests of this session, the inspector. */
 export function ShellProvider({ children }: { children: ReactNode }) {
-  const { persona } = useAuth()
+  const { persona, me, loading } = useAuth()
   const [notices, setNotices] = useState<StoredNotice[]>([])
   const [engine, setEngine] = useState<Engine | null>(null)
-  const [traceRecord, setTraceRecord] = useState<TraceRecord | null>(null)
-  const [inspectorOpen, setInspectorOpen] = useState(false)
+  const [inspectorOpen, setOpenState] = useState(readOpen)
+  const [inspectorSelected, selectRequest] = useState<string | null>(null)
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('requests')
+  const [clusterRun, setClusterRun] = useState<ClusterRun | null>(null)
   const seq = useRef(0)
   const timers = useRef(new Map<string, number>())
+  const requests = useRequests()
+
+  const setInspectorOpen = useCallback((open: boolean) => {
+    setOpenState(open)
+    try { localStorage.setItem(OPEN_KEY, open ? '1' : '0') } catch { /* ignore */ }
+  }, [])
 
   const dismiss = useCallback((id: string) => {
     setNotices((list) => list.filter((n) => n.id !== id))
@@ -41,22 +55,36 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(t)
   }, [refreshEngine])
 
-  // A new persona is a new viewer: old notices and traces are not theirs.
+  // A new viewer (sign-out, another account, another preview persona): old notices and requests are not theirs.
   useEffect(() => {
     setNotices([])
-    setTraceRecord(null)
-    setInspectorOpen(false)
     refreshEngine()
   }, [persona, refreshEngine])
+  const meId = me?.id
+  useEffect(() => {
+    if (loading) return
+    const owner = `${persona}:${meId ?? 'guest'}`
+    requestStore.setOwner(owner)
+  }, [loading, meId, persona])
 
-  const showTrace = useCallback((record: TraceRecord, open?: boolean) => {
-    setTraceRecord(record)
-    if (open) setInspectorOpen(true)
-  }, [])
+  const openInspector = useCallback((id?: string) => {
+    if (id) selectRequest(id)
+    setInspectorTab('requests')
+    setInspectorOpen(true)
+  }, [setInspectorOpen])
+
+  const newest = requests[0]
+  const traceRecord = useMemo<TraceRecord | null>(
+    () => (newest ? { label: newest.label, trace: newest.trace, ok: newest.ok, message: newest.message, at: newest.at } : null),
+    [newest],
+  )
 
   const value = useMemo<ShellValue>(
-    () => ({ notices, notify, dismiss, engine, refreshEngine, traceRecord, showTrace, inspectorOpen, setInspectorOpen }),
-    [notices, notify, dismiss, engine, refreshEngine, traceRecord, showTrace, inspectorOpen],
+    () => ({
+      notices, notify, dismiss, engine, refreshEngine, traceRecord, openInspector, inspectorOpen, setInspectorOpen,
+      inspectorSelected, selectRequest, inspectorTab, setInspectorTab, clusterRun, setClusterRun,
+    }),
+    [notices, notify, dismiss, engine, refreshEngine, traceRecord, openInspector, inspectorOpen, setInspectorOpen, inspectorSelected, inspectorTab, clusterRun],
   )
   return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>
 }

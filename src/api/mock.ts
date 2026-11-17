@@ -326,36 +326,73 @@ function toMe(u: AdminUser): Me {
 }
 
 // ---- traces ----------------------------------------------------------------------
-interface TraceOptions { database?: boolean; label: string; errorAt?: string; errorDetail?: string; staticOnly?: boolean }
+// The shape of CONTRACT-ADDENDUM-2: the API host reports its own time and its SQL work (`api` block, stages
+// `app` and `database`). One trace in five comes in the OLD shape (an API image without the timing header), so the
+// pages are seen with both.
+interface Sql { select?: number; insert?: number; update?: number; delete?: number }
+interface TraceOptions { label: string; errorAt?: string; errorDetail?: string; staticOnly?: boolean; sql?: Sql; appMs?: [number, number]; dbMs?: [number, number]; old?: boolean }
+const FN_INSTANCE = 'a3f9c1d27b4e'
+const PODS = ['consignado-api-5d897fb475-ffmb4', 'consignado-api-5d897fb475-q8kzn']
+/** The commit of the API image in the mock: a real commit of kmadsdev/consignado-api (main). */
+const MOCK_BUILD = '594601afdead4aef48db779d327174d5429f19d3'
+const OLD_SHAPE_SHARE = 0.2
+
+function sqlDetail(sql: Required<Sql>, n: number): string {
+  const kinds = (['select', 'insert', 'update', 'delete'] as const).filter((k) => sql[k] > 0).map((k) => `${sql[k]} ${k}`)
+  return `${n} statement${n === 1 ? '' : 's'}: ${kinds.join(', ')}`
+}
+
 function buildTrace(host: HostKind, opts: TraceOptions): RequestTrace {
   const now = Date.now()
   const parts: Array<[string, number, string]> = []
   let cold = false
+  const guest = persona === 'guest'
+  const old = opts.old ?? Math.random() < OLD_SHAPE_SHARE
   parts.push(['request', rnd(4, 9), opts.label])
   parts.push(['edge', rnd(11, 26), 'Cloudflare edge: WAF rules passed'])
-  parts.push(['gateway', rnd(14, 38), 'gateway function routed the call'])
   if (opts.staticOnly) {
+    parts.push(['gateway', rnd(14, 38), 'gateway function served the masked snapshot'])
     parts.push(['response', rnd(6, 14), '200, masked snapshot from Blob Storage'])
-  } else if (host === 'functions') {
+    return finish(host, false, parts, opts, now)
+  }
+  parts.push(['gateway', host === 'aks' ? rnd(30, 80) : rnd(14, 38), host === 'aks' ? 'gateway function routed the call to the cluster' : 'gateway function routed the call'])
+  if (!guest) parts.push(['identity', rnd(9, 28), 'Entra ID token is valid'])
+  if (host === 'aks') parts.push(['quota', rnd(4, 11), 'access window is active'])
+  const fromCache = Math.random() < 0.85
+  parts.push(['keyvault', fromCache ? 0 : rnd(18, 42), fromCache ? 'secret read from the cache' : 'secret read from Key Vault'])
+  if (host === 'functions') {
     cold = now - db.functionsLastAt > FUNCTION_IDLE_MS
-    parts.push(['identity', rnd(9, 28), persona === 'guest' ? 'no token: guest, stateless call only' : 'Entra ID token is valid'])
-    parts.push(['keyvault', rnd(8, 21), 'secrets read from the cache'])
+    db.functionsLastAt = now
     if (cold) {
       parts.push(['function-cold-start', rnd(13200, 16800), 'Functions host allocated a new instance'])
       parts.push(['jvm-start', rnd(3600, 4900), 'Spring Boot started inside the function'])
     }
-    if (opts.database !== false) parts.push(['database', rnd(14, 88), 'PostgreSQL answered'])
-    parts.push(['response', rnd(5, 14), '200'])
-    db.functionsLastAt = now
-  } else {
-    parts.push(['identity', rnd(9, 28), 'Entra ID token is valid'])
-    parts.push(['quota', rnd(4, 11), 'access window is active'])
-    parts.push(['keyvault', rnd(8, 21), 'secrets read from the cache'])
-    parts.push(['load-balancer', rnd(3, 9), 'internal Load Balancer sent it to a pod'])
-    parts.push(['readiness', rnd(18, 52), 'pod consignado-api-7d9f8c-x2kqp handled it'])
-    if (opts.database !== false) parts.push(['database', rnd(12, 70), 'PostgreSQL answered'])
-    parts.push(['first-response', rnd(5, 14), '200'])
   }
+  const sql: Required<Sql> = { select: 0, insert: 0, update: 0, delete: 0, ...opts.sql }
+  const statements = sql.select + sql.insert + sql.update + sql.delete
+  const dbMs = statements === 0 ? 0 : opts.dbMs ? rnd(opts.dbMs[0], opts.dbMs[1]) : Math.round(statements * (9 + Math.random() * 11))
+  const ownMs = opts.appMs ? rnd(opts.appMs[0], opts.appMs[1]) : rnd(3, 14)
+  const appMs = Math.round((ownMs + dbMs) * 10) / 10
+  const hop = host === 'aks' ? rnd(8, 24) : rnd(12, 40)
+  const instance = host === 'aks' ? PODS[Math.random() < 0.5 ? 0 : 1] : FN_INSTANCE
+  if (old) {
+    // An API image without the timing header: the gateway sees only the upstream total.
+    if (host === 'aks') parts.push(['load-balancer', hop + Math.round(appMs), `internal Load Balancer sent it to pod ${instance}`])
+    parts.push(['response', rnd(5, 14) + (host === 'functions' ? hop + Math.round(appMs) : 0), '200'])
+    return finish(host, cold, parts, opts, now)
+  }
+  parts.push([host === 'aks' ? 'load-balancer' : 'functions-host', hop, host === 'aks' ? 'internal load balancer and network, both ways' : 'Functions host and network, both ways'])
+  parts.push(['app', ownMs, `Spring Boot handled the request in ${instance}`])
+  if (statements > 0) parts.push(['database', dbMs, sqlDetail(sql, statements)])
+  parts.push(['response', rnd(5, 14), '200'])
+  const trace = finish(host, cold, parts, opts, now)
+  trace.api = {
+    instance, appMs,
+    db: statements === 0 ? null : { ms: dbMs, statements, ...sql, other: 0, connectionMs: Math.round((0.2 + Math.random() * 1.6) * 10) / 10, transactions: sql.insert + sql.update + sql.delete > 0 ? 1 : 0 },
+  }
+  return trace
+}
+function finish(host: HostKind, cold: boolean, parts: Array<[string, number, string]>, opts: TraceOptions, now: number): RequestTrace {
   const events: LifecycleEvent[] = []
   let t = now
   let total = 0
@@ -365,28 +402,7 @@ function buildTrace(host: HostKind, opts: TraceOptions): RequestTrace {
     t += ms; total += ms
     if (failed) break
   }
-  return { host, cold, totalMs: total, events }
-}
-/** A warm preview on the pods of an open window: the stages that the gateway sends for host `aks`, 300 to 900 ms. */
-function aksPreviewTrace(label: string, opts: Partial<TraceOptions>): RequestTrace {
-  const parts: Array<[string, number, string]> = [
-    ['request', rnd(4, 9), label],
-    ['edge', rnd(11, 26), 'Cloudflare edge: WAF rules passed'],
-    ['gateway', rnd(30, 80), 'gateway function routed the call to the cluster'],
-    ['identity', rnd(18, 50), 'Entra ID token is valid'],
-    ['quota', rnd(6, 18), 'access window is active'],
-    ['keyvault', rnd(8, 21), 'secrets read from the cache'],
-    ['load-balancer', rnd(210, 640), 'internal Load Balancer sent it to pod consignado-api-7d9f8c-x2kqp'],
-    ['response', rnd(8, 20), '200'],
-  ]
-  const events: LifecycleEvent[] = []
-  let t = Date.now(), total = 0
-  for (const [stage, ms, detail] of parts) {
-    const failed = opts.errorAt === stage
-    events.push({ ts: iso(t), stage, status: failed ? 'error' : 'done', ms, detail: failed ? opts.errorDetail ?? 'failed' : detail })
-    t += ms; total += ms
-  }
-  return { host: 'aks', cold: false, totalMs: total, events }
+  return { host, cold, totalMs: total, events, status: 200 }
 }
 /** The ready window of the signed-in user. The gateway answers 403 `no-session` when there is none. */
 function openWindowOfUser(): SessionRec {
@@ -416,6 +432,7 @@ async function call<T>(host: HostKind, shortLabel: string, fn: () => T, opts: Pa
   await sleep(trace.totalMs)
   if (session) session.requestCount += 1
   record(trace)
+  if (/^POST \/api\/v1\/(customers|simulations|contracts)$/.test(shortLabel)) trace.status = 201
   let data: T
   try {
     data = fn()
@@ -424,6 +441,7 @@ async function call<T>(host: HostKind, shortLabel: string, fn: () => T, opts: Pa
       const last = trace.events[trace.events.length - 1]
       last.status = 'error'
       last.detail = `${err.status}: ${err.message}`
+      trace.status = err.status
       err.trace = trace
       err.label = label
     }
@@ -534,16 +552,16 @@ export async function sendContact(input: ContactInput): Promise<ContactRequest> 
 
 // ---- domain calls ---------------------------------------------------------------------
 export function listAgreements(host: HostKind) {
-  return call(host, 'GET /api/v1/agreements', () => [...db.agreements])
+  return call(host, 'GET /api/v1/agreements', () => [...db.agreements], { sql: { select: 1 }, dbMs: [20, 40] })
 }
 export function listCustomers(host: HostKind) {
-  return call(host, 'GET /api/v1/customers', () => [...db.customers].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+  return call(host, 'GET /api/v1/customers', () => [...db.customers].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), { sql: { select: 2 }, dbMs: [24, 52] })
 }
 export function listSimulations(host: HostKind) {
-  return call(host, 'GET /api/v1/simulations', () => [...db.simulations].sort((a, b) => b.id.localeCompare(a.id)))
+  return call(host, 'GET /api/v1/simulations', () => [...db.simulations].sort((a, b) => b.id.localeCompare(a.id)), { sql: { select: 2 }, dbMs: [24, 52] })
 }
 export function listContracts(host: HostKind) {
-  return call(host, 'GET /api/v1/contracts', () => [...db.contracts].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+  return call(host, 'GET /api/v1/contracts', () => [...db.contracts].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), { sql: { select: 2 }, dbMs: [24, 56] })
 }
 export function createCustomer(host: HostKind, input: CustomerInput) {
   return call(host, 'POST /api/v1/customers', () => {
@@ -555,7 +573,7 @@ export function createCustomer(host: HostKind, input: CustomerInput) {
     db.customers.push(customer)
     log(`added customer ${customer.id}`, host)
     return customer
-  })
+  }, { sql: { select: 2, insert: 1 }, dbMs: [34, 70] })
 }
 export function changeIncome(host: HostKind, id: string, income: number) {
   return call<IncomeResult>(host, `PATCH /api/v1/customers/${id}/income`, () => {
@@ -566,10 +584,10 @@ export function changeIncome(host: HostKind, id: string, income: number) {
     customer.monthlyIncome = round2(income)
     log(`changed the income of ${id}`, host)
     return { customer: { ...customer }, margin: marginOf(id) }
-  })
+  }, { sql: { select: 2, update: 1, insert: 1 }, dbMs: [40, 80] })
 }
 export function getMargin(host: HostKind, id: string) {
-  return call(host, `GET /api/v1/customers/${id}/margin`, () => marginOf(id))
+  return call(host, `GET /api/v1/customers/${id}/margin`, () => marginOf(id), { sql: { select: 2 }, dbMs: [22, 50] })
 }
 export function simulate(host: HostKind, input: SimulationInput) {
   return call<SimulationResult>(host, 'POST /api/v1/simulations', () => {
@@ -585,7 +603,7 @@ export function simulate(host: HostKind, input: SimulationInput) {
     const margin = marginOf(customer.id)
     log(`ran a simulation for ${customer.id}`, host)
     return { simulation, margin, fitsMargin: installment <= margin.available }
-  })
+  }, { sql: { select: 3, insert: 1 }, dbMs: [40, 84] })
 }
 export function createContract(host: HostKind, simulationId: string) {
   return call(host, 'POST /api/v1/contracts', () => {
@@ -600,10 +618,14 @@ export function createContract(host: HostKind, simulationId: string) {
     db.contracts.push(contract)
     log(`created contract ${contract.id}`, host)
     return contract
-  })
+  }, { sql: { select: 3, insert: 2 }, dbMs: [48, 96] })
 }
 const ACTION_PAST: Record<ContractAction, string> = { approve: 'approved', reject: 'rejected', activate: 'activated', settle: 'settled', cancel: 'cancelled' }
 export function contractAction(host: HostKind, id: string, action: ContractAction) {
+  // Activation writes the installment schedule (two rows per month) and the outbox event: about 4 to 5 s, not a cold start.
+  const sqlOpts: Partial<TraceOptions> = action === 'activate'
+    ? { sql: { select: 3, insert: 2 * (db.contracts.find((c) => c.id === id)?.termMonths ?? 48) + 2, update: 1 }, dbMs: [3900, 4700], appMs: [120, 260] }
+    : { sql: { select: 2, update: 1, insert: 1 }, dbMs: [36, 80] }
   return call(host, `POST /api/v1/contracts/${id}/${action}`, () => {
     requireWriter()
     const contract = db.contracts.find((c) => c.id === id)
@@ -613,7 +635,7 @@ export function contractAction(host: HostKind, id: string, action: ContractActio
     contract.status = next
     log(`${ACTION_PAST[action]} contract ${id}`, host)
     return { ...contract }
-  })
+  }, sqlOpts)
 }
 
 // ---- guest calls (stateless, no database) ------------------------------------------------
@@ -622,7 +644,8 @@ export async function previewSimulation(input: PreviewInput, host: HostKind = 'f
   const label = `POST /api/${host === 'functions' ? 'fn' : 'aks'}/api/v1/simulations/preview`
   const session = host === 'aks' ? openWindowOfUser() : null
   const failAt = bad ? { errorAt: 'response', errorDetail: '422: the values are out of range' } : {}
-  const trace = host === 'aks' ? aksPreviewTrace(label, failAt) : buildTrace('functions', { label, database: false, ...failAt })
+  const trace = buildTrace(host, { label, ...failAt, ...(host === 'aks' ? { appMs: [4, 12] as [number, number] } : {}) })
+  if (bad) { trace.status = 422; trace.api = undefined }
   await sleep(trace.totalMs + rnd(25, 80)) // the edge and the network: the browser sees more than the gateway trace
   if (session) session.requestCount += 1
   record(trace)
@@ -692,7 +715,7 @@ export async function getStatus(host: HostKind): Promise<PlatformStatus> {
       const restarts = slowOne === 'pods' ? 1 : 0
       services.push(
         { id: 'node', name: 'aks-system-31415926-vmss000000', kind: 'Node', region: STATUS_REGION, state: 'up', detail: 'Ready, Standard_D2as_v4', metrics: [metric('cpu', 'CPU', rnd(9, 34), '%', 'now'), metric('memory', 'Memory', rnd(41, 63), '%', 'now')], source: ['kubernetes'] },
-        { id: 'pods', name: 'consignado-api', kind: 'Pods', region: STATUS_REGION, state: st('pods'), detail: `2 of 2 pods Ready, ${restarts} restart${restarts === 1 ? '' : 's'}, image 1.4.2`, metrics: [metric('replicas', 'Ready pods', 2, 'count', 'now'), metric('restarts', 'Restarts', restarts, 'count', 'now')], source: ['kubernetes'] },
+        { id: 'pods', name: 'consignado-api', kind: 'Pods', region: STATUS_REGION, state: st('pods'), detail: `2 of 2 pods Ready, ${restarts} restart${restarts === 1 ? '' : 's'}, image 1.4.2`, metrics: [metric('replicas', 'Ready pods', 2, 'count', 'now'), metric('restarts', 'Restarts', restarts, 'count', 'now')], source: ['kubernetes'], instances: [...PODS] },
       )
     } else {
       services.push(
@@ -706,7 +729,7 @@ export async function getStatus(host: HostKind): Promise<PlatformStatus> {
     detail: slowOne === 'database' ? 'Server state Ready; CPU is higher than usual' : 'Server state Ready',
     metrics: [metric('cpu', 'CPU', slowOne === 'database' ? rnd(78, 92) : rnd(3, 14), '%'), metric('connections', 'Active connections', rnd(4, 12), 'count'), metric('memory', 'Memory', rnd(28, 40), '%')], source: ['azure-monitor', 'arm'],
   })
-  return { asOf: iso(now - rnd(1, 9) * 1000), host, services }
+  return { asOf: iso(now - rnd(1, 9) * 1000), host, services, build: { commit: MOCK_BUILD } }
 }
 
 // ---- admin ---------------------------------------------------------------------------------

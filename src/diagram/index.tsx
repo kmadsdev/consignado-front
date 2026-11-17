@@ -14,7 +14,7 @@ import { LOCALE } from '../i18n/lang.ts'
 import { STAGE_NAMES, UI } from './strings'
 import './diagram.css'
 
-export { useDemoTimeline } from './demo'
+export { demoAksStartEvents, useDemoTimeline } from './demo'
 export type { DemoTimeline, DemoTimelineOptions } from './demo'
 export { STAGE_NAMES } from './strings'
 
@@ -163,7 +163,7 @@ function longestMid(pts: Pt[]): Pt {
 // -------------------------------------------------------------------- icons --
 const BASE = import.meta.env.BASE_URL
 
-function Glyph({ name, size }: { name: string; size: number }) {
+export function Glyph({ name, size }: { name: string; size: number }) {
   if (name === 'pipeline') {
     // Own pictogram of a build pipeline: one source step that fans out to two steps.
     return (

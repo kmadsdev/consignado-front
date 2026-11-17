@@ -2,7 +2,7 @@
 // like `fullName`, `netMonthlySalary`, `installmentAmount`) and the frontend
 // types of ./types.ts. Both directions: responses and request bodies.
 // Pure functions, type-only imports: `node --test` runs this file as it is.
-import type { Agreement, Contract, ContractStatus, Customer, HostKind, LifecycleEvent, Margin, RequestTrace, Simulation, StageStatus } from './types'
+import type { Agreement, ApiTiming, Contract, ContractStatus, Customer, HostKind, LifecycleEvent, Margin, RequestTrace, Simulation, StageStatus } from './types'
 
 // ---- the API shapes (application/Views.java, api/Requests.java) ---------------
 export interface ApiAgreement { id: string; code: string; name: string; maxMarginPercent: number | string; maxTermMonths: number; monthlyInterestRate: number | string; createdAt: string }
@@ -193,10 +193,31 @@ export function parseTrace(header: string | null | undefined, hostHeader?: strin
       if (typeof e.ms === 'number' && Number.isFinite(e.ms)) event.ms = e.ms
       events.push(event)
     }
-    return normalizeTrace({ host, cold: raw.cold === true, totalMs: num(raw.totalMs), events })
+    const trace: RequestTrace = { host, cold: raw.cold === true, totalMs: num(raw.totalMs), events }
+    const api = toApiTiming((raw as { api?: unknown }).api)
+    if (api) trace.api = api
+    return normalizeTrace(trace)
   } catch {
     return null
   }
+}
+/** The `api` block of the trace (header `X-Consignado-Timing` of the API host). Unknown or broken values are dropped. */
+export function toApiTiming(raw: unknown): ApiTiming | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const r = raw as Record<string, unknown>
+  const fin = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined)
+  const out: ApiTiming = {}
+  if (typeof r.instance === 'string' && r.instance) out.instance = r.instance.slice(0, 80)
+  if (fin(r.appMs) !== undefined) out.appMs = fin(r.appMs)
+  if (r.db === null) out.db = null
+  else if (r.db && typeof r.db === 'object') {
+    const d = r.db as Record<string, unknown>
+    const n = (k: string) => Math.max(0, Math.round(fin(d[k]) ?? 0))
+    out.db = { ms: Math.max(0, fin(d.ms) ?? 0), statements: n('statements'), select: n('select'), insert: n('insert'), update: n('update'), delete: n('delete'), other: n('other') }
+    if (fin(d.connectionMs) !== undefined) out.db.connectionMs = fin(d.connectionMs)
+    if (fin(d.transactions) !== undefined) out.db.transactions = n('transactions')
+  }
+  return Object.keys(out).length ? out : undefined
 }
 /** The text of an error body: problem details (`detail`) or the gateway shape (`message`). */
 export function problemText(body: ApiProblem | null | undefined): string {
