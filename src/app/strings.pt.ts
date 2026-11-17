@@ -343,7 +343,7 @@ export const ptBR: typeof en = {
     backToAks: 'Voltar ao host Kubernetes',
     countdown: 'Tempo restante',
     countdownWaits: 'Começa quando o cluster fica pronto.',
-    countdownRuns: (time: string) => `Termina às ${time}.`,
+    countdownRuns: (time: string) => `Termina em ${time}.`,
     starting: 'Inicialização do cluster',
     startingHint: 'A requisição está a caminho.',
     compressedNote: 'Prévia do design: a inicialização é reproduzida em 40 s. As durações das etapas mostram o tamanho real (4 a 6 minutos).',
