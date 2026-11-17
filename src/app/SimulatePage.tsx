@@ -18,11 +18,12 @@ import { useNavigate } from 'react-router-dom'
 import { ApiError, getSnapshot, previewSimulation, type PreviewResult, type Snapshot } from '../api/client'
 import type { Customer } from '../api/types'
 import { useAuth } from '../auth'
-import { ArchitectureDiagram, LifecycleTimeline, useDemoTimeline } from '../diagram'
+import { demoAksStartEvents } from '../diagram'
+import { LifecycleReplay } from '../flow/LifecycleReplay'
 import { Mono } from './common'
 import { DataTable, type Column } from './DataTable'
 import { brl, brlRound, dateTime, duration, percent, relativeTime } from './format'
-import { RequestFlow, type FlowRecord } from './RequestFlow'
+import { RequestFlow, saveRecord, type FlowRecord } from './RequestFlow'
 import { T } from './strings'
 
 interface SavedPreview { id: string; at: string; principal: number; termMonths: number; ratePercent: number; income: number; installment: number; totalAmount: number; fitsMargin: boolean; ms: number; cold: boolean }
@@ -50,7 +51,7 @@ export function SimulatePage() {
   const [saved, setSaved] = useState<SavedPreview[]>(() => readSaved())
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [snapshotFailed, setSnapshotFailed] = useState(false)
-  const demo = useDemoTimeline('aks', { autoStart: false, loop: false })
+  const demoEvents = useMemo(() => demoAksStartEvents(), [])
 
   const loadSnapshot = () => {
     setSnapshotFailed(false)
@@ -77,11 +78,11 @@ export function SimulatePage() {
     try {
       const res = await previewSimulation({ principal: p, termMonths: m, monthlyInterestRate: r / 100, monthlyIncome: i })
       setResult(res.data)
-      setRecord({ label: res.label, trace: res.trace, ok: true, at: Date.now(), browserMs: Math.round(performance.now() - started), status: 200 })
+      setRecord(saveRecord({ label: res.label, trace: res.trace, ok: true, at: Date.now(), browserMs: Math.round(performance.now() - started), status: res.trace.status ?? 200 }))
       setSaved((list) => [{ id: `${Date.now()}`, at: new Date().toISOString(), principal: p, termMonths: m, ratePercent: r, income: i, installment: res.data.installment, totalAmount: res.data.totalAmount, fitsMargin: res.data.fitsMargin, ms: res.trace.totalMs, cold: res.trace.cold }, ...list].slice(0, 12))
     } catch (err) {
       setFailure(err instanceof Error ? err.message : T.common.failed)
-      if (err instanceof ApiError && err.trace) setRecord({ label: err.label ?? '', trace: err.trace, ok: false, message: err.message, at: Date.now(), browserMs: Math.round(performance.now() - started), status: err.status, code: err.code })
+      if (err instanceof ApiError && err.trace) setRecord(saveRecord({ label: err.label ?? '', trace: err.trace, ok: false, message: err.message, at: Date.now(), browserMs: Math.round(performance.now() - started), status: err.status, code: err.code }))
     } finally {
       window.clearTimeout(slowTimer); setBusy(false); setSlow(false)
     }
@@ -202,26 +203,13 @@ export function SimulatePage() {
               variant="h2"
               description={T.guest.aksHint}
               info={<Badge color="severity-medium">{T.guest.simBadge}</Badge>}
-              actions={
-                <SpaceBetween size="xs" direction="horizontal">
-                  <Button onClick={demo.reset} disabled={demo.events.length === 0 && !demo.running}>{T.guest.reset}</Button>
-                  <Button iconName="caret-right-filled" onClick={demo.start} disabled={demo.running}>{demo.running ? T.guest.playing : T.guest.play}</Button>
-                </SpaceBetween>
-              }
             >
               {T.guest.aks}
             </Header>
           }
         >
           <SpaceBetween size="m">
-            <Grid gridDefinition={[{ colspan: 12 }, { colspan: 12 }]}>
-              <div className="diagram-frame"><ArchitectureDiagram view="aks" events={demo.events} height={640} /></div>
-              <div>
-                <Box variant="awsui-key-label">{T.guest.aksTimeline}</Box>
-                {demo.events.length === 0 && <Box color="text-body-secondary">{T.guest.aksTimelineEmpty}</Box>}
-                <LifecycleTimeline view="aks" events={demo.events} />
-              </div>
-            </Grid>
+            <LifecycleReplay events={demoEvents} runKey="guest-replay" height={640} autoPlay={false} />
             <Alert type="info" header={T.guest.ctaTitle} action={me ? <Button onClick={() => navigate('/app/aks')}>{T.guest.ctaSigned}</Button> : <Button variant="primary" onClick={() => { signIn(); navigate('/app/aks') }}>{T.guest.cta}</Button>}>
               {T.guest.ctaText}
             </Alert>

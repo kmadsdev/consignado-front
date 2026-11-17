@@ -17,6 +17,7 @@ import { AKS_STAGES } from '../api/stages'
 import { useAuth } from '../auth'
 import { POLL } from '../config'
 import { ArchitectureDiagram, LifecycleTimeline } from '../diagram'
+import { LifecycleReplay } from '../flow/LifecycleReplay'
 import { useShell } from '../shell/context'
 import { CenteredSpinner, CopyId, Gate, Mono, useNow } from './common'
 import { clock, dateTime, duration } from './format'
@@ -32,11 +33,17 @@ const MAX_READS_AFTER_END = 60
 function LiveWindow({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate()
   const { me, refresh } = useAuth()
-  const { refreshEngine } = useShell()
+  const { refreshEngine, setClusterRun } = useShell()
   const [session, setSession] = useState<SessionView | null>(null)
   const [failure, setFailure] = useState<{ status: number; message: string } | null>(null)
   const lastState = useRef<string>('')
   const now = useNow(250)
+
+  // The inspector drawer shows this window's cluster start (tab "Cluster start").
+  useEffect(() => {
+    if (session) setClusterRun({ key: session.id, events: session.events })
+  }, [session, setClusterRun])
+  useEffect(() => () => setClusterRun(null), [setClusterRun])
 
   const [pollProblem, setPollProblem] = useState(false)
   const [confirmEnd, setConfirmEnd] = useState(false)
@@ -229,9 +236,9 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
         )}
 
         <Container header={<Header variant="h2" description={T.live.diagramHint}>{T.live.diagram}</Header>}>
-          <div className="diagram-frame">
-            <ArchitectureDiagram view="aks" events={session.events} height={640} />
-          </div>
+          {session.state === 'starting'
+            ? <div className="diagram-frame"><ArchitectureDiagram view="aks" events={session.events} height={640} /></div>
+            : <LifecycleReplay events={session.events} runKey={session.id} height={640} autoPlay={false} showChecklist={false} />}
         </Container>
         <Container header={<Header variant="h2" description={T.live.timelineHint}>{T.live.timeline}</Header>}>
           <LifecycleTimeline view="aks" events={session.events} />

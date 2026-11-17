@@ -65,6 +65,27 @@ export interface RequestTrace {
   cold: boolean
   totalMs: number
   events: LifecycleEvent[]
+  /** Set by the browser client: the HTTP status of the answer that carried this trace. Not sent by the gateway. */
+  status?: number
+  /** CONTRACT-ADDENDUM-2 section 2: the parsed `X-Consignado-Timing` of the API host. Absent for an old API image. */
+  api?: ApiTiming
+}
+/** What the Spring Boot API says it did for one request (header `X-Consignado-Timing`). No SQL text, no data values. */
+export interface ApiTiming {
+  instance?: string
+  appMs?: number
+  db?: DbTiming | null
+}
+export interface DbTiming {
+  ms: number
+  statements: number
+  select: number
+  insert: number
+  update: number
+  delete: number
+  other: number
+  connectionMs?: number
+  transactions?: number
 }
 
 // ---- domain (the Spring Boot API, /api/v1) ---------------------------------
@@ -85,6 +106,8 @@ export interface PlatformStatus {
   asOf: string                // ISO, UTC: when the gateway built this answer
   host: 'functions' | 'aks'
   services: ServiceStatus[]   // in request-path order
+  /** The build that answers on this host, when the gateway sends it: the image tag is the commit. */
+  build?: string | { commit?: string; sha?: string; image?: string; tag?: string } | null
 }
 export type ServiceId =
   | 'edge' | 'gateway' | 'identity' | 'keyvault'            // both paths
@@ -102,6 +125,8 @@ export interface ServiceStatus {
   detail: string              // one true sentence
   metrics: Metric[]           // may be empty
   source: StatusSource[]
+  /** Pods only, when the gateway sends them: the names of the pods behind the Service. */
+  instances?: string[]
 }
 export interface Metric {
   key: string                 // "requests", "errors", "latency-avg", "latency-p95", "cpu", "memory", "connections", "restarts", "replicas", "instances"

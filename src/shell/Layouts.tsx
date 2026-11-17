@@ -4,16 +4,23 @@ import Box from '@cloudscape-design/components/box'
 import BreadcrumbGroup, { type BreadcrumbGroupProps } from '@cloudscape-design/components/breadcrumb-group'
 import Flashbar from '@cloudscape-design/components/flashbar'
 import SideNavigation, { type SideNavigationProps } from '@cloudscape-design/components/side-navigation'
-import SplitPanel from '@cloudscape-design/components/split-panel'
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { RequestInspector } from '../app/RequestInspector'
+import { InspectorContent } from '../flow/Inspector'
+import { F } from '../flow/strings'
 import { useAuth } from '../auth'
 import { useShell } from './context'
 import { S } from './strings'
 import { TopBar } from './TopBar'
 
 const LIVE_WINDOW = /^\/app\/[^/]+\/aks\/?$/
+const SIZE_KEY = 'consignado.inspector.width'
+function readDrawerSize(): number {
+  try { const n = Number(localStorage.getItem(SIZE_KEY)); return n >= 280 && n <= 2000 ? n : 720 } catch { return 720 }
+}
+function saveDrawerSize(n: number) {
+  try { localStorage.setItem(SIZE_KEY, String(Math.round(n))) } catch { /* ignore */ }
+}
 
 function FooterLine({ className }: { className: string }) {
   return (
@@ -72,14 +79,12 @@ export function AppShell() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { role } = useAuth()
-  const { traceRecord, inspectorOpen, setInspectorOpen } = useShell()
+  const { inspectorOpen, setInspectorOpen } = useShell()
   const notices = useNotices()
   const [navOpen, setNavOpen] = useState(() => window.innerWidth > 688)
-  const [panelPosition, setPanelPosition] = useState<'bottom' | 'side'>('bottom')
-  const [panelSize, setPanelSize] = useState(400)
+  const [drawerSize, setDrawerSize] = useState(readDrawerSize)
 
   const isLive = LIVE_WINDOW.test(pathname) && pathname !== '/app/aks'
-  const hasInspector = pathname.startsWith('/app/operations') || isLive
   const activeHref = isLive ? '/app/aks' : pathname.replace(/\/$/, '') || '/'
 
   const items: SideNavigationProps.Item[] = [
@@ -131,24 +136,23 @@ export function AppShell() {
         toolsHide
         breadcrumbs={<BreadcrumbGroup items={crumbs} ariaLabel={S.aria.breadcrumbs} onFollow={follow} />}
         notifications={notices}
-        splitPanel={
-          hasInspector ? (
-            <SplitPanel header={traceRecord ? `${S.inspector.title}: ${traceRecord.label}` : S.inspector.title} closeBehavior="collapse">
-              {traceRecord ? <RequestInspector record={traceRecord} diagramHeight={240} /> : <Box color="text-body-secondary">{S.inspector.empty}</Box>}
-            </SplitPanel>
-          ) : undefined
-        }
-        splitPanelOpen={hasInspector && inspectorOpen}
-        onSplitPanelToggle={(e) => setInspectorOpen(e.detail.open)}
-        splitPanelPreferences={{ position: panelPosition }}
-        onSplitPanelPreferencesChange={(e) => setPanelPosition(e.detail.position)}
-        splitPanelSize={panelSize}
-        onSplitPanelResize={(e) => setPanelSize(e.detail.size)}
+        drawers={[{
+          id: 'inspector',
+          content: <InspectorContent />,
+          trigger: { iconName: 'search' },
+          resizable: true,
+          defaultSize: drawerSize,
+          onResize: (e) => { setDrawerSize(e.detail.size); saveDrawerSize(e.detail.size) },
+          ariaLabels: { drawerName: F.inspector.title, closeButton: F.inspector.close, triggerButton: F.inspector.trigger, resizeHandle: F.inspector.resize },
+        }]}
+        activeDrawerId={inspectorOpen ? 'inspector' : null}
+        onDrawerChange={(e) => setInspectorOpen(e.detail.activeDrawerId === 'inspector')}
         ariaLabels={{
           navigation: S.aria.navigation,
           navigationClose: S.aria.navigationClose,
           navigationToggle: S.aria.navigationToggle,
           notifications: S.aria.notifications,
+          drawers: F.inspector.title,
         }}
         content={
           <>
