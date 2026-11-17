@@ -119,18 +119,18 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
         items={model.segments}
         trackBy="stage"
         columnDefinitions={[
-          { id: 'stage', header: D.colStage, cell: (s) => F.stageLong[s.stage] ?? s.stage, isRowHeader: true },
-          { id: 'status', header: D.colStatus, cell: (s) => <StatusIndicator type={STATUS_TYPE[s.status] ?? 'info'}>{D.statusText[s.status] ?? s.status}</StatusIndicator> },
-          { id: 'start', header: D.colStart, cell: (s) => mono(`+${duration(s.start)}`) },
-          { id: 'ms', header: D.colDuration, cell: (s) => mono(duration(s.ms)) },
+          { id: 'stage', header: D.colStage, cell: (s) => F.stageLong[s.stage] ?? s.stage, isRowHeader: true, minWidth: 160 },
+          { id: 'status', header: D.colStatus, cell: (s) => <StatusIndicator type={STATUS_TYPE[s.status] ?? 'info'} iconAriaLabel={D.statusText[s.status] ?? s.status} />, width: 76 },
+          { id: 'start', header: D.colStart, cell: (s) => mono(`+${duration(s.start)}`), width: 96 },
+          { id: 'ms', header: D.colDuration, cell: (s) => mono(duration(s.ms)), width: 96 },
           {
-            id: 'share', header: D.colShare,
+            id: 'share', header: D.colShare, width: 140,
             cell: (s) => {
               const pct = total > 0 ? Math.min(100, (s.ms / total) * 100) : 0
               return <span className="fl-share" style={FLOW_VARS}><span className="fl-share-bar" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span><span className="mono">{decimal(pct, 0)}%</span></span>
             },
           },
-          { id: 'detail', header: D.colDetail, cell: (s) => <Box fontSize="body-s" color={s.status === 'error' ? 'text-status-error' : 'text-body-secondary'}>{s.detail ?? '-'}</Box> },
+          { id: 'detail', header: D.colDetail, minWidth: 200, cell: (s) => <Box fontSize="body-s" color={s.status === 'error' ? 'text-status-error' : 'text-body-secondary'}>{s.detail ?? '-'}</Box> },
         ]}
       />
       <SpaceBetween size="xs">

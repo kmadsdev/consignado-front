@@ -38,7 +38,7 @@ export const FLOW_VARS = {
 
 const NODE_W = 132
 const ICON_R = 16
-const TEXT_H = 58 // label, sub, time, one extra line
+const TEXT_H = 72 // label, sub, time, live metric
 const MIN_COL = 134
 
 function NodeIcon({ kind }: { kind: string }) {
@@ -55,7 +55,8 @@ function layout(model: FlowModel, width: number) {
   let height: number
   if (horizontal) {
     const colW = (width - 16) / cols
-    const yMain = 126, yA = 36, yB = 286
+    const hasAbove = model.nodes.some((n) => n.place === 'above')
+    const yMain = hasAbove ? 140 : 30, yA = 30, yB = yMain + 170
     for (const n of model.nodes) {
       const xMain = 8 + colW * (n.col + 0.5)
       if (n.place === 'main' || n.place === 'pod-a') placed.set(n.id, { node: n, x: xMain, y: yMain, w: Math.min(NODE_W, colW - 4) })
@@ -64,7 +65,7 @@ function layout(model: FlowModel, width: number) {
     }
     height = model.nodes.some((n) => n.place === 'below' || n.place === 'pod-b') ? yB + ICON_R + TEXT_H + 8 : yMain + ICON_R + TEXT_H + 12
   } else {
-    const rowH = 112
+    const rowH = 124
     const side = Math.max(108, Math.min(170, width / 2 - 64))
     const x = width / 2
     for (const n of model.nodes) {
@@ -87,7 +88,7 @@ function layout(model: FlowModel, width: number) {
 
 function route(a: Placed, b: Placed, horizontal: boolean): Pt[] {
   const gap = ICON_R + 5
-  const below = (p: Placed): Pt => [p.x, p.y + ICON_R + TEXT_H - 4]
+  const below = (p: Placed): Pt => [p.x, p.y + ICON_R + TEXT_H]
   if (horizontal) {
     if (Math.abs(a.y - b.y) < 1) return [[a.x + gap, a.y], [b.x - gap, b.y]]
     if (b.y < a.y) return [[a.x, a.y - gap], [a.x, b.y], [b.x - gap, b.y]] // up, then right
@@ -122,6 +123,12 @@ function pointAt(pts: Pt[], f: number): Pt {
   return pts[pts.length - 1]
 }
 function mid(pts: Pt[]): Pt { return pointAt(pts, 0.5) }
+/** Idle lines first, so a lit line is never covered by an idle one. */
+const RANK: Record<string, number> = { idle: 0, done: 1, active: 2 }
+/** Pod names differ only at the end: keep the end when the name is long. */
+function shortName(name: string, max = 20): string {
+  return name.length > max ? `…${name.slice(-(max - 1))}` : name
+}
 
 export interface FlowDiagramProps {
   model: FlowModel
@@ -167,7 +174,7 @@ export function FlowDiagram({ model, pos, status, label, dbDetail }: FlowDiagram
       {geo && (
         <>
           <svg className="fl-svg" width={width} height={geo.height} aria-hidden="true">
-            {model.edges.map((e) => {
+            {[...model.edges].sort((a, b) => RANK[frame.edgeState[a.id] ?? 'idle'] - RANK[frame.edgeState[b.id] ?? 'idle']).map((e) => {
               const pts = geo.lines.get(e.id)
               if (!pts) return null
               const st = frame.edgeState[e.id] ?? 'idle'
@@ -197,7 +204,8 @@ function FlowNodeView({ p, model, state, status, dbDetail }: { p: Placed; model:
   const isDb = n.kind === 'database'
   const showMs = state === 'done' || state === 'error'
   const title = n.kind === 'pod' && n.sub ? F.node.pod : F.node[n.kind]
-  const sub = n.sub ?? (n.kind === 'pod' && !n.answered ? F.otherPod : live?.name ?? F.nodeSub[n.kind])
+  const fullSub = n.sub ?? (n.kind === 'pod' && !n.answered ? F.otherPod : live?.name ?? F.nodeSub[n.kind])
+  const sub = n.kind === 'pod' || n.kind === 'app' ? shortName(fullSub) : fullSub
   let extra: string | undefined
   if (n.kind === 'keyvault' && n.cached) extra = F.cached
   if (isDb && model.db && model.db.statements > 0) extra = F.statements(model.db.statements)
@@ -229,15 +237,15 @@ function FlowNodeView({ p, model, state, status, dbDetail }: { p: Placed; model:
   return (
     <div className={`fl-node fl-node-${state}${n.kind === 'pod' && n.answered === false ? ' fl-node-other' : ''}`} style={{ left: p.x - p.w / 2, top: p.y - ICON_R, width: p.w }} data-node={n.id}>
       <Popover header={title} content={content} triggerType="custom" size="medium" position="top" dismissAriaLabel={F.close}>
-        <button type="button" className="fl-node-btn" aria-label={`${title}, ${sub}${showMs && n.ms !== undefined ? `, ${duration(n.ms)}` : ''}`}>
+        <button type="button" className="fl-node-btn" aria-label={`${title}, ${fullSub}${showMs && n.ms !== undefined ? `, ${duration(n.ms)}` : ''}`}>
           <span className="fl-icon">
             <NodeIcon kind={n.kind} />
             {live && <span className={`fl-live fl-live-${live.state}`} title={F.live[live.state]} aria-hidden="true" />}
           </span>
           <span className="fl-label">{title}</span>
-          <span className="fl-sub mono" title={sub}>{sub}</span>
+          <span className="fl-sub mono" title={fullSub}>{sub}</span>
           <span className="fl-ms mono">{showMs && n.ms !== undefined ? duration(n.ms) : ' '}{extra ? ` · ${extra}` : ''}</span>
-          {metric && <span className="fl-metric">{metricText(metric, '-', decimal)}</span>}
+          {metric && <span className="fl-metric">{F.liveMetric(metric.key, metricText(metric, '-', decimal))}</span>}
         </button>
       </Popover>
     </div>

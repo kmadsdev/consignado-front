@@ -54,12 +54,12 @@ export function LifecycleChecklist({ run, pos }: { run: LifeRun; pos: number }) 
       items={rows}
       trackBy="stage"
       columnDefinitions={[
-        { id: 'stage', header: D.colStage, cell: (s) => STAGE_NAMES[s.stage] ?? s.stage, isRowHeader: true },
-        { id: 'status', header: D.colStatus, cell: (s) => <StatusIndicator type={TYPE[s.shown]}>{D.statusText[s.shown] ?? s.shown}</StatusIndicator> },
-        { id: 'ts', header: I.colTs, cell: (s) => <span className="mono">{clock.format(new Date(run.t0 + s.start))}</span> },
-        { id: 'start', header: D.colStart, cell: (s) => <span className="mono">+{duration(s.start)}</span> },
-        { id: 'ms', header: D.colDuration, cell: (s) => <span className="mono">{s.ms !== undefined ? duration(s.ms) : '-'}</span> },
-        { id: 'detail', header: D.colDetail, cell: (s) => <Box fontSize="body-s" color="text-body-secondary">{s.detail ?? '-'}</Box> },
+        { id: 'stage', header: D.colStage, cell: (s) => STAGE_NAMES[s.stage] ?? s.stage, isRowHeader: true, minWidth: 160 },
+        { id: 'status', header: D.colStatus, cell: (s) => <StatusIndicator type={TYPE[s.shown]} iconAriaLabel={D.statusText[s.shown] ?? s.shown} />, width: 76 },
+        { id: 'ts', header: I.colTs, cell: (s) => <span className="mono">{clock.format(new Date(run.t0 + s.start))}</span>, width: 104 },
+        { id: 'start', header: D.colStart, cell: (s) => <span className="mono">+{duration(s.start)}</span>, width: 112 },
+        { id: 'ms', header: D.colDuration, cell: (s) => <span className="mono">{s.ms !== undefined ? duration(s.ms) : '-'}</span>, width: 112 },
+        { id: 'detail', header: D.colDetail, cell: (s) => <Box fontSize="body-s" color="text-body-secondary">{s.detail ?? '-'}</Box>, minWidth: 200 },
       ]}
     />
   )

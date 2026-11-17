@@ -7,7 +7,7 @@ export const ptBR: typeof en = {
   stage: {
     request: 'navegador', edge: 'edge', gateway: 'gateway', identity: 'Entra ID', quota: 'cota', keyvault: 'Key Vault',
     'function-cold-start': 'cold start', 'jvm-start': 'início da JVM', 'functions-host': 'host do Functions', 'load-balancer': 'load balancer',
-    app: 'app', database: 'banco', response: 'resposta',
+    app: 'app', database: 'banco', response: 'host e resposta',
   },
   stageLong: {
     request: 'O navegador envia a requisição',
@@ -46,6 +46,7 @@ export const ptBR: typeof en = {
     database: 'Azure Database for PostgreSQL flexible server: toda escrita e toda leitura dos dados compartilhados vem aqui.',
   },
   close: 'Fechar',
+  liveMetric: (key: string, value: string) => (key === 'latency-avg' ? `média ${value} (5 min)` : key === 'replicas' ? `${value} pods prontos` : `CPU ${value}`),
   cached: 'em cache',
   answered: 'respondeu',
   otherPod: 'outro pod',

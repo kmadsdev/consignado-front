@@ -270,6 +270,9 @@ export function pathSteps(model: FlowModel): PathStep[] {
     if (!s) continue
     out.push({ stage: id, ms: s.ms, extra: id === 'database' && model.db && model.db.statements > 0 ? statementKinds(model.db) : undefined })
   }
+  // An old trace has no host stage: the host time is inside `response`.
+  const resp = model.segments.find((x) => x.stage === 'response')
+  if (!model.detailed && resp) out.push({ stage: 'response', ms: resp.ms })
   return out
 }
 
