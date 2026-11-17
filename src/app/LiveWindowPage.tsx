@@ -23,7 +23,6 @@ import { Operations } from './Operations'
 import { T } from './strings'
 import { WindowPreview } from './WindowPreview'
 
-const WINDOW_MS = WINDOW_MINUTES * 60_000
 /** The stages of a cluster start, from the request to the first answer of the API. */
 const START_STAGES: readonly string[] = AKS_STAGES.slice(0, AKS_STAGES.indexOf('window-open'))
 /** After a window ends, the page waits this long for the "cluster stopped" event. Then it stops reading. */
@@ -73,7 +72,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
   const header = (
     <Header
       variant="h1"
-      description={T.live.description}
+      description={T.live.description(me?.windowMinutes ?? WINDOW_MINUTES)}
     >
       {T.live.title}{' '}
       <Box display="inline" fontSize="heading-m" color="text-body-secondary"><Mono>{sessionId}</Mono></Box>{' '}
@@ -100,6 +99,8 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
   const requestedAt = new Date(session.requestedAt).getTime()
   const expiresAt = session.expiresAt ? new Date(session.expiresAt).getTime() : 0
   const remaining = session.state === 'ready' ? Math.max(0, expiresAt - now) : 0
+  // The window length of this session (per user since the admin setting); before it is ready: the owner's setting.
+  const windowMs = session.readyAt && expiresAt ? expiresAt - new Date(session.readyAt).getTime() : (me?.windowMinutes ?? WINDOW_MINUTES) * 60_000
   const doneStages = new Set(session.events.filter((e) => e.status === 'done' && START_STAGES.includes(e.stage)).map((e) => e.stage)).size
   // The mock plays a fixed 40 s. A real start has no fixed length: the bar shows the stages that are done.
   const startPercent = session.compressed
@@ -143,7 +144,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
             <Grid gridDefinition={[{ colspan: { default: 12, s: 4 } }, { colspan: { default: 12, s: 8 } }]}>
               <div>
                 <Box variant="awsui-key-label">{T.live.countdown}</Box>
-                <Box color="text-status-inactive"><span className="mono countdown">{clock(WINDOW_MS)}</span></Box>
+                <Box color="text-status-inactive"><span className="mono countdown">{clock(windowMs)}</span></Box>
                 <Box color="text-body-secondary" fontSize="body-s">{T.live.countdownWaits}</Box>
               </div>
               <SpaceBetween size="s">
@@ -175,7 +176,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
                     { label: T.live.requests, value: <Mono>{session.requestCount}</Mono> },
                   ]}
                 />
-                <ProgressBar value={(remaining / WINDOW_MS) * 100} ariaLabel={T.live.countdown} additionalInfo={remaining < 60_000 ? T.live.lastMinute : session.compressed ? T.live.compressedNote : T.live.realReadyNote} status="in-progress" />
+                <ProgressBar value={(remaining / windowMs) * 100} ariaLabel={T.live.countdown} additionalInfo={remaining < 60_000 ? T.live.lastMinute : session.compressed ? T.live.compressedNote : T.live.realReadyNote} status="in-progress" />
               </SpaceBetween>
             </Grid>
           </Container>

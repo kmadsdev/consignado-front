@@ -29,6 +29,20 @@ export interface ArchitectureDiagramProps {
   host?: HostKind
   /** Force a colour mode. Default: follow the Cloudscape mode of the page. */
   mode?: 'light' | 'dark'
+  /** Optional live state per service node id (from GET /api/status). The node shows a dot, the resource name and a short line. */
+  nodeStatus?: Record<string, NodeStatus>
+}
+export type NodeState = 'up' | 'degraded' | 'down' | 'stopped' | 'starting' | 'unknown'
+export interface NodeStatus {
+  state: NodeState
+  /** The state in words, in the page language. */
+  stateText: string
+  /** The real resource name, shown in monospace under the node. */
+  name: string
+  /** Short lines under the name (one per line, split on a line break): the region, one key metric. */
+  summary?: string
+  /** Rows of the detail that opens on a click. */
+  rows: Array<{ label: string; value: string }>
 }
 
 type Visual = StageStatus | 'idle'
@@ -208,14 +222,14 @@ function Pill({ status, ms }: { status: Visual; ms?: number }) {
 const STATUS_TEXT: Record<Visual, string> = { idle: UI.statusIdle, pending: UI.statusPending, active: UI.statusActive, done: UI.statusDone, error: UI.statusError }
 
 // -------------------------------------------------------------------- nodes --
-interface SvcData extends Record<string, unknown> { def: SvcDef; status: Visual; ms?: number; stages: Array<{ id: string; status: Visual; ms?: number }> }
+interface SvcData extends Record<string, unknown> { def: SvcDef; status: Visual; ms?: number; stages: Array<{ id: string; status: Visual; ms?: number }>; live?: NodeStatus }
 interface GroupData extends Record<string, unknown> { def: GroupDef; status: Visual; ms?: number }
 interface LegendData extends Record<string, unknown> { kinds: EdgeKind[] }
 
 const hidden = { opacity: 0, pointerEvents: 'none' as const }
 
 const ServiceNode = memo(function ServiceNode({ data, selected }: NodeProps<Node<SvcData>>) {
-  const { def, status, ms, stages } = data
+  const { def, status, ms, stages, live } = data
   const size = iconSize(def.icon)
   return (
     <div className={`dg-svc dg-st-${status}${selected ? ' dg-selected' : ''}`} style={{ width: SVC_W }}>
@@ -224,13 +238,20 @@ const ServiceNode = memo(function ServiceNode({ data, selected }: NodeProps<Node
       <div className="dg-icon" style={{ width: size, height: size }}>
         <Icon icon={def.icon} size={size} />
         <Pill status={status} ms={ms} />
+        {live && <span className={`dg-live-dot dg-live-${live.state}`} title={live.stateText} aria-hidden="true" />}
       </div>
       <div className="dg-label">{def.label}</div>
-      {def.sub && <div className="dg-sub">{def.sub}</div>}
+      {live && live.name !== def.label ? <div className="dg-live-name" title={live.name}>{live.name}</div> : def.sub && <div className="dg-sub">{def.sub}</div>}
+      {live?.summary?.split('\n').map((line, i) => <div key={i} className="dg-live-sum">{line}</div>)}
       <NodeToolbar isVisible={!!selected} position={def.pop === 'bottom' ? Position.Bottom : Position.Top} offset={10}>
         <div className="dg-pop" role="note">
           <div className="dg-pop-title">{def.label}</div>
           <p className="dg-pop-text">{def.what}</p>
+          {live && (
+            <dl className="dg-pop-live">
+              {live.rows.map((r, i) => <div key={i} className="dg-pop-live-row"><dt>{r.label}</dt><dd>{r.value}</dd></div>)}
+            </dl>
+          )}
           {stages.length > 0 && (
             <ul className="dg-pop-stages">
               {stages.map((s) => (
@@ -317,7 +338,7 @@ const edgeTypes = { flow: FlowEdge }
 const MARKERS = ['request', 'trust', 'deploy', 'pending', 'active', 'done', 'error']
 
 // ------------------------------------------------------------------ diagram --
-function DiagramInner({ view, events, onStageSelect, host, dark }: ArchitectureDiagramProps & { dark: boolean }) {
+function DiagramInner({ view, events, onStageSelect, host, dark, nodeStatus }: ArchitectureDiagramProps & { dark: boolean }) {
   const reduced = usePrefersReducedMotion()
   const flow = useReactFlow()
   const wrap = useRef<HTMLDivElement>(null)
@@ -358,8 +379,8 @@ function DiagramInner({ view, events, onStageSelect, host, dark }: ArchitectureD
       const status: Visual = st.stages.length === 0 ? 'idle' : st.status
       return {
         id: s.id, type: 'svc', position: { x: s.x - SVC_W / 2, y: s.y - iconSize(s.icon) / 2 }, zIndex: 10,
-        selected: s.id === selectedId, draggable: false, ariaLabel: `${s.label}${s.sub ? `, ${s.sub}` : ''}. ${STATUS_TEXT[status]}.`,
-        data: { def: s, status, ms: st.ms, stages: st.stages.map((id) => ({ id, status: any ? (info.get(id)?.status ?? 'pending') : 'idle', ms: info.get(id)?.ms })) } satisfies SvcData,
+        selected: s.id === selectedId, draggable: false, ariaLabel: `${s.label}${s.sub ? `, ${s.sub}` : ''}. ${STATUS_TEXT[status]}.${nodeStatus?.[s.id] ? ` ${nodeStatus[s.id].name}: ${nodeStatus[s.id].stateText}.` : ''}`,
+        data: { def: s, status, ms: st.ms, stages: st.stages.map((id) => ({ id, status: any ? (info.get(id)?.status ?? 'pending') : 'idle', ms: info.get(id)?.ms })), live: nodeStatus?.[s.id] } satisfies SvcData,
       }
     })
     const kinds = Array.from(new Set(def.edges.map((e) => e.kind ?? 'request')))
@@ -382,7 +403,7 @@ function DiagramInner({ view, events, onStageSelect, host, dark }: ArchitectureD
     const firstStage = new Map<string, string>()
     for (const [id, stages] of stagesOfNode) firstStage.set(id, stages[0])
     return { nodes: [...groupNodes, legend, ...svcNodes], edges: flowEdges, firstStage }
-  }, [def, info, selectedId, reduced])
+  }, [def, info, selectedId, reduced, nodeStatus])
 
   const fit = useCallback(() => { void flow.fitView({ padding: 0.04, duration: 0 }) }, [flow])
 

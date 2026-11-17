@@ -43,6 +43,8 @@ export interface Me {
   status: 'active' | 'held' | 'blocked' // held = possible duplicate account, waits for the admin
   windowsUsed: number
   windowsMax: number // 3 by default
+  /** Minutes of one access window for this user (5 to 60). Old gateways do not send it: use WINDOW_MINUTES. */
+  windowMinutes?: number
   activeSessionId?: string
 }
 
@@ -73,3 +75,34 @@ export interface Contract { id: string; customerId: string; simulationId: string
 export interface AdminUser extends Me { company: string; linkedin: string; createdAt: string; lastSeenAt: string; flags: Array<'same-device' | 'same-ip' | 'disposable-email'> }
 export interface AdminState { engine: Engine; budget: { limitUsd: number; spentUsd: number; asOf: string }; paused: boolean }
 export interface ContactRequest { id: string; kind: 'contact' | 'more-windows'; name: string; email: string; message: string; createdAt: string }
+
+// ---- live service status (GET /api/status?host=functions|aks, CONTRACT-ADDENDUM.md) ----------
+export interface PlatformStatus {
+  asOf: string                // ISO, UTC: when the gateway built this answer
+  host: 'functions' | 'aks'
+  services: ServiceStatus[]   // in request-path order
+}
+export type ServiceId =
+  | 'edge' | 'gateway' | 'identity' | 'keyvault'            // both paths
+  | 'functions'                                             // serverless path
+  | 'load-balancer' | 'cluster' | 'node' | 'pods'           // Kubernetes path
+  | 'database'
+export type ServiceState = 'up' | 'degraded' | 'down' | 'stopped' | 'starting' | 'unknown'
+export type StatusSource = 'azure-monitor' | 'kubernetes' | 'resource-health' | 'arm' | 'gateway'
+export interface ServiceStatus {
+  id: ServiceId
+  name: string                // the real Azure resource name; for edge and identity a plain name
+  kind: string
+  region?: string
+  state: ServiceState
+  detail: string              // one true sentence
+  metrics: Metric[]           // may be empty
+  source: StatusSource[]
+}
+export interface Metric {
+  key: string                 // "requests", "errors", "latency-avg", "latency-p95", "cpu", "memory", "connections", "restarts", "replicas", "instances"
+  label: string
+  value: number | null        // null = Azure returned no data for the window
+  unit: 'count' | 'ms' | '%' | 'MB' | 'rpm'
+  window: string              // "last 5 min", "now"
+}

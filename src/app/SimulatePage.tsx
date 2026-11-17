@@ -19,11 +19,10 @@ import { ApiError, getSnapshot, previewSimulation, type PreviewResult, type Snap
 import type { Customer } from '../api/types'
 import { useAuth } from '../auth'
 import { ArchitectureDiagram, LifecycleTimeline, useDemoTimeline } from '../diagram'
-import type { TraceRecord } from '../shell/context'
 import { Mono } from './common'
 import { DataTable, type Column } from './DataTable'
 import { brl, brlRound, dateTime, duration, percent, relativeTime } from './format'
-import { RequestInspector } from './RequestInspector'
+import { RequestFlow, type FlowRecord } from './RequestFlow'
 import { T } from './strings'
 
 interface SavedPreview { id: string; at: string; principal: number; termMonths: number; ratePercent: number; income: number; installment: number; totalAmount: number; fitsMargin: boolean; ms: number; cold: boolean }
@@ -46,7 +45,7 @@ export function SimulatePage() {
   const [busy, setBusy] = useState(false)
   const [slow, setSlow] = useState(false)
   const [result, setResult] = useState<PreviewResult | null>(null)
-  const [record, setRecord] = useState<TraceRecord | null>(null)
+  const [record, setRecord] = useState<FlowRecord | null>(null)
   const [failure, setFailure] = useState('')
   const [saved, setSaved] = useState<SavedPreview[]>(() => readSaved())
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
@@ -74,14 +73,15 @@ export function SimulatePage() {
     if (!valid || busy) return
     setBusy(true); setFailure(''); setSlow(false)
     const slowTimer = window.setTimeout(() => setSlow(true), 1200)
+    const started = performance.now()
     try {
       const res = await previewSimulation({ principal: p, termMonths: m, monthlyInterestRate: r / 100, monthlyIncome: i })
       setResult(res.data)
-      setRecord({ label: res.label, trace: res.trace, ok: true, at: Date.now() })
+      setRecord({ label: res.label, trace: res.trace, ok: true, at: Date.now(), browserMs: Math.round(performance.now() - started), status: 200 })
       setSaved((list) => [{ id: `${Date.now()}`, at: new Date().toISOString(), principal: p, termMonths: m, ratePercent: r, income: i, installment: res.data.installment, totalAmount: res.data.totalAmount, fitsMargin: res.data.fitsMargin, ms: res.trace.totalMs, cold: res.trace.cold }, ...list].slice(0, 12))
     } catch (err) {
       setFailure(err instanceof Error ? err.message : T.common.failed)
-      if (err instanceof ApiError && err.trace) setRecord({ label: err.label ?? '', trace: err.trace, ok: false, message: err.message, at: Date.now() })
+      if (err instanceof ApiError && err.trace) setRecord({ label: err.label ?? '', trace: err.trace, ok: false, message: err.message, at: Date.now(), browserMs: Math.round(performance.now() - started), status: err.status, code: err.code })
     } finally {
       window.clearTimeout(slowTimer); setBusy(false); setSlow(false)
     }
@@ -149,14 +149,10 @@ export function SimulatePage() {
             </form>
           </Container>
           <Container fitHeight header={<Header variant="h2" description={T.guest.requestHint}>{T.guest.request}</Header>}>
-            {record
-              ? <RequestInspector record={record} diagramHeight={520} stacked />
-              : (
-                <SpaceBetween size="s">
-                  <Box color="text-body-secondary">{T.guest.requestEmpty}</Box>
-                  <div className="diagram-frame"><ArchitectureDiagram view="functions" events={[]} height={520} /></div>
-                </SpaceBetween>
-              )}
+            <SpaceBetween size="s">
+              {!record && <Box color="text-body-secondary">{T.guest.requestEmpty}</Box>}
+              <RequestFlow host="functions" record={record} />
+            </SpaceBetween>
           </Container>
         </Grid>
 

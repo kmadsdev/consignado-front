@@ -118,6 +118,22 @@ export const en = {
     colCreated: 'Received',
     kind: { contact: 'Contact', 'more-windows': 'More windows' } as Record<string, string>,
   },
+  windowSettings: {
+    action: 'Window settings',
+    title: 'Window settings',
+    text: (name: string, used: number) => `${name} used ${used} ${used === 1 ? 'window' : 'windows'} so far. A change does not alter a window that is already open.`,
+    windows: 'Access windows',
+    windowsHint: (used: number) => `From 0 to 50. Used: ${used}.`,
+    windowsErr: 'Enter a whole number from 0 to 50.',
+    minutes: 'Minutes per window',
+    minutesHint: 'From 5 to 60. Each window can cost about US$ 0.03 to 0.05 for 15 minutes.',
+    minutesErr: 'Enter a whole number from 5 to 60.',
+    save: 'Save',
+    done: (name: string) => `Window settings of ${name} saved.`,
+    colWindows: (used: number, max: number) => `${used} / ${max} windows`,
+    colMinutes: 'Window length',
+    minutesValue: (n: number) => `${n} min`,
+  },
 }
 
 export const A = pick(en, ptBR)

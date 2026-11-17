@@ -20,7 +20,7 @@ import Tabs from '@cloudscape-design/components/tabs'
 import Toggle from '@cloudscape-design/components/toggle'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  adminGetState, adminListContacts, adminListSessions, adminListUsers, adminSetPaused, adminStopEngine, adminUserAction,
+  adminGetState, adminListContacts, adminListSessions, adminListUsers, adminSetPaused, adminSetWindowSettings, adminStopEngine, adminUserAction, WINDOW_MINUTES,
   type AdminSession, type AdminUserAction,
 } from '../api/client'
 import type { AdminState, AdminUser, ContactRequest } from '../api/types'
@@ -42,8 +42,10 @@ function Admin() {
   const [failure, setFailure] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [modal, setModal] = useState<'grant' | 'block' | 'pause' | 'stop' | null>(null)
+  const [modal, setModal] = useState<'grant' | 'block' | 'pause' | 'stop' | 'settings' | null>(null)
   const [grant, setGrant] = useState('1')
+  const [maxText, setMaxText] = useState('3')
+  const [minutesText, setMinutesText] = useState('15')
 
   const load = useCallback(() => {
     setFailure('')
@@ -68,6 +70,22 @@ function Admin() {
       const next = await adminUserAction(user.id, action, windows)
       setUsers((list) => list?.map((u) => (u.id === next.id ? { ...u, ...next } : u)) ?? null)
       notify({ type: 'success', content: A.users.done(next.name || next.email, A.users.doneWhat[action]) })
+      setModal(null)
+    } catch (err) {
+      notify({ type: 'error', header: A.users.failed, content: err instanceof Error ? err.message : A.loadFailed })
+    } finally { setBusy(false) }
+  }
+  const W = A.windowSettings
+  const maxNumber = Number(maxText), minutesNumber = Number(minutesText)
+  const maxValid = maxText.trim() !== '' && Number.isInteger(maxNumber) && maxNumber >= 0 && maxNumber <= 50
+  const minutesValid = minutesText.trim() !== '' && Number.isInteger(minutesNumber) && minutesNumber >= 5 && minutesNumber <= 60
+  const saveSettings = async () => {
+    if (!user || !maxValid || !minutesValid) return
+    setBusy(true)
+    try {
+      const next = await adminSetWindowSettings(user.id, { windowsMax: maxNumber, windowMinutes: minutesNumber })
+      setUsers((list) => list?.map((u) => (u.id === next.id ? { ...u, ...next } : u)) ?? null)
+      notify({ type: 'success', content: W.done(next.name || next.email) })
       setModal(null)
     } catch (err) {
       notify({ type: 'error', header: A.users.failed, content: err instanceof Error ? err.message : A.loadFailed })
@@ -107,7 +125,8 @@ function Admin() {
         ? <Box color="text-status-inactive">{A.users.noFlags}</Box>
         : <SpaceBetween size="xxs" direction="horizontal">{u.flags.map((f) => <Badge key={f} color={f === 'disposable-email' ? 'severity-medium' : 'severity-low'}>{A.users.flags[f]}</Badge>)}</SpaceBetween>,
     },
-    { id: 'windows', header: A.users.colWindows, cell: (u) => <Mono>{u.windowsUsed} / {u.windowsMax}</Mono>, sortingField: 'windowsUsed' },
+    { id: 'windows', header: A.users.colWindows, cell: (u) => <Mono>{A.windowSettings.colWindows(u.windowsUsed, u.windowsMax)}</Mono>, sortingField: 'windowsUsed' },
+    { id: 'minutes', header: A.windowSettings.colMinutes, cell: (u) => <Mono>{A.windowSettings.minutesValue(u.windowMinutes ?? WINDOW_MINUTES)}</Mono>, sortingField: 'windowMinutes' },
     { id: 'company', header: A.users.colCompany, cell: (u) => u.company || '-', sortingField: 'company' },
     { id: 'linkedin', header: A.users.colLinkedin, cell: (u) => u.linkedin ? <Link href={u.linkedin} external>{A.users.linkedin}</Link> : '-' },
     { id: 'lastSeen', header: A.users.colLastSeen, cell: (u) => <span title={dateTime(u.lastSeenAt)}>{relativeTime(u.lastSeenAt)}</span>, sortingField: 'lastSeenAt' },
@@ -169,9 +188,11 @@ function Admin() {
                         { id: 'hold', text: A.users.hold, disabled: !user || user.role === 'admin' || user.status === 'held', disabledReason: user?.role === 'admin' ? A.users.isAdmin : A.users.already(A.users.status.held.toLowerCase()) },
                         { id: 'block', text: A.users.block, disabled: !user || user.role === 'admin' || user.status === 'blocked', disabledReason: user?.role === 'admin' ? A.users.isAdmin : A.users.already(A.users.status.blocked.toLowerCase()) },
                         { id: 'grant', text: A.users.grant },
+                        { id: 'settings', text: A.windowSettings.action },
                       ]}
                       onItemClick={(e) => {
                         if (e.detail.id === 'grant') { setGrant('1'); setModal('grant') }
+                        else if (e.detail.id === 'settings' && user) { setMaxText(String(user.windowsMax)); setMinutesText(String(user.windowMinutes ?? WINDOW_MINUTES)); setModal('settings') }
                         else if (e.detail.id === 'block') setModal('block')
                         else void act(e.detail.id as AdminUserAction)
                       }}
@@ -276,6 +297,22 @@ function Admin() {
         />
       </SpaceBetween>
 
+      {modal === 'settings' && user && (
+        <Modal
+          visible onDismiss={() => setModal(null)} header={W.title}
+          footer={<Box float="right"><SpaceBetween size="xs" direction="horizontal"><Button variant="link" onClick={() => setModal(null)}>{A.cancel}</Button><Button variant="primary" loading={busy} disabled={!maxValid || !minutesValid} onClick={() => void saveSettings()}>{W.save}</Button></SpaceBetween></Box>}
+        >
+          <SpaceBetween size="m">
+            <Box>{W.text(user.name || user.email, user.windowsUsed)}</Box>
+            <FormField label={W.windows} description={W.windowsHint(user.windowsUsed)} errorText={maxValid ? '' : W.windowsErr}>
+              <Input value={maxText} onChange={(e) => setMaxText(e.detail.value)} type="number" inputMode="numeric" />
+            </FormField>
+            <FormField label={W.minutes} description={W.minutesHint} errorText={minutesValid ? '' : W.minutesErr}>
+              <Input value={minutesText} onChange={(e) => setMinutesText(e.detail.value)} type="number" inputMode="numeric" />
+            </FormField>
+          </SpaceBetween>
+        </Modal>
+      )}
       {modal === 'grant' && user && (
         <Modal
           visible onDismiss={() => setModal(null)} header={A.users.grantTitle}
