@@ -64,6 +64,7 @@ function PageHeader() {
           {t.header.secondaryAction}
         </Button>
       </SpaceBetween>
+      <Box padding={{ bottom: 'xs' }} />
     </SpaceBetween>
   )
 }
@@ -89,6 +90,7 @@ function DiagramSection() {
 }
 
 function HostCard({ host }: { host: typeof t.hosts.functions }) {
+  const narrow = useNarrow()
   return (
     <Container
       fitHeight
@@ -106,7 +108,7 @@ function HostCard({ host }: { host: typeof t.hosts.functions }) {
         </Box>
       }
     >
-      <KeyValuePairs columns={2} items={facts(host.facts)} />
+      <KeyValuePairs columns={narrow ? 1 : 2} items={facts(host.facts)} />
     </Container>
   )
 }
@@ -227,10 +229,11 @@ function SecuritySection() {
 }
 
 function StackSection() {
+  const narrow = useNarrow()
   return (
     <Container header={<Header variant="h2">{t.stack.title}</Header>}>
       <KeyValuePairs
-        columns={3}
+        columns={narrow ? 1 : 3}
         items={t.stack.groups.map((group) => ({ label: group.label, value: group.items.join(', ') }))}
       />
     </Container>

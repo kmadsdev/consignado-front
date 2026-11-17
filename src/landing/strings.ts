@@ -89,10 +89,10 @@ export const landing = {
       facts: [
         { label: 'Availability', value: 'Started for a 15-minute access window' },
         { label: 'Who can use it', value: 'Signed-in users, 3 windows each' },
-        { label: 'Cold start', value: 'About 4 to 6 min, shown stage by stage', mono: true },
-        { label: 'Capacity', value: '2 pods', mono: true },
+        { label: 'Cold start', value: 'About 4 to 6 min', mono: true },
+        { label: 'Start progress', value: 'Shown stage by stage' },
         { label: 'When the window ends', value: 'The cluster is stopped' },
-        { label: 'Network', value: 'Internal load balancer, no public IP' },
+        { label: 'Network', value: 'Internal load balancer, 2 pods' },
       ] as Fact[],
       tradeOff:
         'It answers at a steady speed once it runs, but a stopped cluster needs minutes to start and a running one costs money each hour.',
