@@ -200,3 +200,36 @@ test('store: survives a reload, clears for another viewer (sign-out)', () => {
 test('store: method and path of a label', () => {
   assert.deepEqual(splitLabel('POST /api/aks/api/v1/customers'), { method: 'POST', path: '/api/aks/api/v1/customers' })
 })
+
+// Traces made by the real gateway code (reports/gateway3.md, examples 3 and 4).
+const g = (stage, ms, detail, status = 'done') => (ms === undefined ? { ts, stage, status, detail } : { ts, stage, status, ms, detail })
+const gwAks = { host: 'aks', cold: false, totalMs: 58, events: [
+  g('request', undefined, 'browser sent the request'), g('edge', undefined, 'Cloudflare edge: WAF, rate limit'), g('gateway', 8), g('identity', 3), g('quota', undefined),
+  g('keyvault', 0, 'not needed for this host'), g('load-balancer', 25), g('app', 12, 'Spring Boot handled the request in consignado-api-5d897fb475-ffmb4'),
+  g('database', 10, '2 statements: 1 select, 1 insert'), g('response', undefined, 'HTTP 201 from the API host')],
+  api: { instance: 'consignado-api-5d897fb475-ffmb4', appMs: 22.4, db: { ms: 9.6, statements: 2, select: 1, insert: 1, update: 0, delete: 0, other: 0, connectionMs: 0.4, transactions: 1 } } }
+const gwCold = { host: 'functions', cold: true, totalMs: 11850, events: [
+  g('request', undefined), g('edge', undefined), g('gateway', 50), g('keyvault', 0, 'cached'), g('function-cold-start', 11388), g('jvm-start', undefined), g('functions-host', undefined),
+  g('app', 412, 'Spring Boot handled the request in a1b2c3d4e5f6'), g('response', undefined)], api: { instance: 'a1b2c3d4e5f6', appMs: 412.4, db: null } }
+
+test('gateway3 shapes: untimed stages show no time, Key Vault "not needed" is not drawn, times add up', () => {
+  const a = buildFlow(gwAks)
+  assert.ok(!a.nodes.some((n) => n.kind === 'keyvault'))
+  assert.equal(a.nodes.find((n) => n.id === 'browser').ms, undefined)
+  assert.equal(a.nodes.find((n) => n.id === 'edge').ms, undefined)
+  assert.equal(a.durationMs, 58)
+  assert.equal(a.db.statements, 2)
+  assert.deepEqual(pathSteps(a).map((s) => s.stage), ['gateway', 'identity', 'load-balancer', 'app', 'database'])
+  const c = buildFlow(gwCold)
+  assert.deepEqual(c.main, ['browser', 'edge', 'gateway', 'fnhost', 'app'])
+  assert.equal(c.nodes.find((n) => n.id === 'fnhost').ms, 11388)
+  assert.equal(c.durationMs, 11850)
+  assert.equal(c.db, undefined)
+})
+
+test('strings: the pt-BR table of the flow has every key of the English one', async () => {
+  const { en } = await import('../strings.ts')
+  const { ptBR } = await import('../strings.pt.ts')
+  const keys = (o, p = '') => Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' ? keys(v, `${p}${k}.`) : [`${p}${k}:${typeof v}`])).sort()
+  assert.deepEqual(keys(ptBR), keys(en))
+})
