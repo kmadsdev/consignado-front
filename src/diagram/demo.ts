@@ -36,8 +36,8 @@ const fnSteps = (cold: boolean, n: number): Step[] => {
     { stage: 'gateway', ms: cold ? 162 : j(21), detail: DEMO_DETAIL.gateway },
     { stage: 'identity', ms: cold ? 109 : j(8), detail: DEMO_DETAIL.identity },
     { stage: 'keyvault', ms: cold ? 158 : j(4), detail: DEMO_DETAIL.keyvault },
-    cold ? { stage: 'function-cold-start', ms: 6_840, detail: DEMO_DETAIL['function-cold-start'] } : { stage: 'function-cold-start', ms: 0, detail: DEMO_DETAIL.warmSkip, hold: 120 },
-    cold ? { stage: 'jvm-start', ms: 4_610, detail: DEMO_DETAIL['jvm-start'] } : { stage: 'jvm-start', ms: 0, detail: DEMO_DETAIL.warmSkip, hold: 120 },
+    cold ? { stage: 'function-cold-start', ms: 14_300, detail: DEMO_DETAIL['function-cold-start'] } : { stage: 'function-cold-start', ms: 0, detail: DEMO_DETAIL.warmSkip, hold: 120 },
+    cold ? { stage: 'jvm-start', ms: 4_350, detail: DEMO_DETAIL['jvm-start'] } : { stage: 'jvm-start', ms: 0, detail: DEMO_DETAIL.warmSkip, hold: 120 },
     { stage: 'database', ms: cold ? 384 : j(31), detail: DEMO_DETAIL['database:fn'] },
     { stage: 'response', ms: j(12), detail: DEMO_DETAIL.response },
   ]

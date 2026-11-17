@@ -6,16 +6,15 @@ import ContentLayout from '@cloudscape-design/components/content-layout'
 import Grid from '@cloudscape-design/components/grid'
 import Header from '@cloudscape-design/components/header'
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs'
-import Modal from '@cloudscape-design/components/modal'
 import ProgressBar from '@cloudscape-design/components/progress-bar'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator from '@cloudscape-design/components/status-indicator'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ApiError, COMPRESSED_START_MS, WINDOW_MINUTES, endSession, getSession, type SessionView } from '../api/client'
+import { ApiError, COMPRESSED_START_MS, WINDOW_MINUTES, getSession, type SessionView } from '../api/client'
 import { AKS_STAGES } from '../api/stages'
 import { useAuth } from '../auth'
-import { CAN_END_SESSION, POLL } from '../config'
+import { POLL } from '../config'
 import { ArchitectureDiagram, LifecycleTimeline } from '../diagram'
 import { useShell } from '../shell/context'
 import { CenteredSpinner, CopyId, Gate, Mono, useNow } from './common'
@@ -35,8 +34,6 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
   const { refreshEngine } = useShell()
   const [session, setSession] = useState<SessionView | null>(null)
   const [failure, setFailure] = useState<{ status: number; message: string } | null>(null)
-  const [confirmEnd, setConfirmEnd] = useState(false)
-  const [ending, setEnding] = useState(false)
   const lastState = useRef<string>('')
   const now = useNow(250)
 
@@ -76,7 +73,6 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
     <Header
       variant="h1"
       description={T.live.description}
-      actions={CAN_END_SESSION && session && session.state !== 'ended' && session.state !== 'failed' ? <Button onClick={() => setConfirmEnd(true)}>{T.live.endNow}</Button> : undefined}
     >
       {T.live.title}{' '}
       <Box display="inline" fontSize="heading-m" color="text-body-secondary"><Mono>{sessionId}</Mono></Box>{' '}
@@ -110,16 +106,13 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
     : Math.min(100, (doneStages / START_STAGES.length) * 100)
   const elapsed = clock(Math.max(0, now - requestedAt))
   const currentStage = [...session.events].reverse().find((e) => e.status === 'active')
+  const readyNote = !session.compressed && session.coldStartMs !== undefined && session.coldStartMs < 60_000 ? ` (${T.live.alreadyRunning})` : ''
+  // After 8 minutes a real start is slower than usual: say so, with the last signal of the gateway.
+  const lastSignal = session.events[session.events.length - 1]
+  const slowStart = !session.compressed && now - requestedAt > 8 * 60_000 && lastSignal ? T.live.slowStart(lastSignal.detail ?? lastSignal.stage) : ''
   const failedStage = [...session.events].reverse().find((e) => e.status === 'error') ?? session.events[session.events.length - 1]
   const windowLength = session.readyAt && session.endedAt ? new Date(session.endedAt).getTime() - new Date(session.readyAt).getTime() : 0
   const stopped = session.events.some((e) => e.stage === 'cluster-stop' && e.status === 'done')
-
-  const end = async () => {
-    setEnding(true)
-    try { setSession(await endSession(sessionId)); refreshEngine(); void refresh() }
-    catch { /* the next poll shows the true state */ }
-    finally { setEnding(false); setConfirmEnd(false) }
-  }
 
   return (
     <ContentLayout header={header}>
@@ -153,6 +146,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
                 <Box color="text-body-secondary" fontSize="body-s">{T.live.countdownWaits}</Box>
               </div>
               <SpaceBetween size="s">
+                {Boolean(slowStart) && <Alert type="info">{slowStart}</Alert>}
                 <ProgressBar
                   value={startPercent}
                   label={T.live.starting}
@@ -176,7 +170,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
                   columns={3}
                   items={[
                     { label: T.live.state, value: <StatusIndicator type="success">{T.live.ready}</StatusIndicator> },
-                    { label: T.live.coldStart, value: <Mono>{duration(session.coldStartMs ?? 0)}</Mono> },
+                    { label: T.live.coldStart, value: <><Mono>{duration(session.coldStartMs ?? 0)}</Mono>{readyNote}</> },
                     { label: T.live.requests, value: <Mono>{session.requestCount}</Mono> },
                   ]}
                 />
@@ -191,7 +185,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
               <KeyValuePairs
                 columns={4}
                 items={[
-                  { label: T.live.coldStart, value: session.coldStartMs ? <Mono>{duration(session.coldStartMs)}</Mono> : T.live.neverReady },
+                  { label: T.live.coldStart, value: session.coldStartMs ? <><Mono>{duration(session.coldStartMs)}</Mono>{readyNote}</> : T.live.neverReady },
                   { label: T.live.windowLength, value: <Mono>{windowLength ? duration(windowLength) : '-'}</Mono> },
                   { label: T.live.requests, value: <Mono>{session.requestCount}</Mono> },
                   { label: T.live.endedAt, value: session.endedAt ? dateTime(session.endedAt) : '-' },
@@ -230,22 +224,6 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
           </SpaceBetween>
         )}
       </SpaceBetween>
-
-      <Modal
-        visible={confirmEnd}
-        onDismiss={() => setConfirmEnd(false)}
-        header={T.live.endTitle}
-        footer={
-          <Box float="right">
-            <SpaceBetween size="xs" direction="horizontal">
-              <Button variant="link" onClick={() => setConfirmEnd(false)}>{T.common.cancel}</Button>
-              <Button variant="primary" loading={ending} onClick={() => void end()}>{T.live.endConfirm}</Button>
-            </SpaceBetween>
-          </Box>
-        }
-      >
-        {T.live.endText}
-      </Modal>
     </ContentLayout>
   )
 }

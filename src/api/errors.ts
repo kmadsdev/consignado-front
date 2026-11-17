@@ -8,12 +8,15 @@ export class ApiError extends Error {
   /** The short code of the body, for example `cooldown` or `margin-exceeded`. */
   code?: string
   retryAfterSeconds?: number
-  constructor(status: number, message: string, trace?: RequestTrace, code?: string, retryAfterSeconds?: number) {
+  /** Method and path of the call that failed. */
+  label?: string
+  constructor(status: number, message: string, trace?: RequestTrace, code?: string, retryAfterSeconds?: number, label?: string) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.trace = trace
     this.code = code
     this.retryAfterSeconds = retryAfterSeconds
+    this.label = label
   }
 }

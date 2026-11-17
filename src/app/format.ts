@@ -4,6 +4,9 @@ const DATE_TIME = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeSt
 const DATE = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeZone: 'America/Sao_Paulo' })
 
 export const brl = (n: number) => BRL.format(n)
+const BRL_ROUND = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+/** A rounded amount with no cents: R$ 5.200 */
+export const brlRound = (n: number) => BRL_ROUND.format(n)
 export const usd = (n: number) => USD.format(n)
 export const percent = (rate: number, digits = 2) => `${(rate * 100).toFixed(digits)}%`
 export const dateTime = (isoText: string) => DATE_TIME.format(new Date(isoText))

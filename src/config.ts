@@ -30,6 +30,3 @@ export const CLUSTER_ORIGIN: string =
 export const POLL = MOCK
   ? { engine: 4000, sessionStarting: 1000, sessionReady: 1000, me: 5000 }
   : { engine: 15_000, sessionStarting: 2000, sessionReady: 10_000, me: 15_000 }
-
-/** The gateway has no route that ends a window early. Only the mock can do it. */
-export const CAN_END_SESSION: boolean = MOCK

@@ -111,7 +111,7 @@ function Overview() {
                 {
                   label: T.overview.lastLatency,
                   value: functions?.lastMs !== undefined
-                    ? <SpaceBetween size="xs" direction="horizontal" alignItems="center"><Mono>{duration(functions.lastMs)}</Mono>{functions.lastCold && <Badge color="blue">{T.inspector.cold}</Badge>}</SpaceBetween>
+                    ? <SpaceBetween size="xs" direction="horizontal" alignItems="center"><Mono>{duration(functions.lastMs)}</Mono>{functions.lastCold && functions.host === 'functions' && <Badge color="blue">{T.inspector.cold}</Badge>}</SpaceBetween>
                     : <Box color="text-body-secondary">{T.overview.noRequest}</Box>,
                 },
                 { label: T.overview.availability, value: T.overview.alwaysOn },

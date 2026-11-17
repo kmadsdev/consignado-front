@@ -119,3 +119,43 @@ test('error bodies: gateway {code, message} and API problem details', () => {
   assert.equal(problemText({ code: 'validation-failed', detail: 'One or more fields are not valid', errors: [{ field: 'cpf', message: 'invalid CPF' }] }), 'cpf: invalid CPF')
   assert.equal(problemText(null), '')
 })
+
+// ---- round 1 (live end-to-end test) ---------------------------------------------
+import { formatCpf, isValidCpf, maskCpf, normalizeTrace, speedOf } from '../map.ts'
+
+test('cold: only the Functions host can be cold; a trace that is not cold has no cold-start stages', () => {
+  const ev = (stage, ms) => ({ ts: '2026-11-17T09:00:00Z', stage, status: 'done', ms })
+  const aks = normalizeTrace({ host: 'aks', cold: true, totalMs: 4352, events: [ev('gateway', 29), ev('response')] })
+  assert.equal(aks.cold, false)
+  assert.equal(speedOf(aks), 'slow')
+  const fnCold = normalizeTrace({ host: 'functions', cold: true, totalMs: 18687, events: [ev('gateway', 20), ev('function-cold-start', 18600), ev('jvm-start'), ev('response')] })
+  assert.equal(fnCold.cold, true)
+  assert.equal(fnCold.events.length, 4)
+  assert.equal(speedOf(fnCold), 'cold')
+  const fnSlow = normalizeTrace({ host: 'functions', cold: false, totalMs: 4550, events: [ev('gateway', 20), ev('function-cold-start', 4537), ev('response')] })
+  assert.deepEqual(fnSlow.events.map((e) => e.stage), ['gateway', 'response'])
+  assert.equal(speedOf(fnSlow), 'slow')
+  assert.equal(speedOf({ host: 'functions', cold: false, totalMs: 572 }), 'warm')
+  const header = Buffer.from(JSON.stringify({ host: 'aks', cold: true, totalMs: 4352, events: [ev('gateway', 29)] })).toString('base64url')
+  assert.equal(parseTrace(header).cold, false)
+})
+
+test('cpf: check, format and the mask of the API', () => {
+  assert.equal(isValidCpf('000.000.001-91'), true)
+  assert.equal(isValidCpf('00000000191'), true)
+  assert.equal(isValidCpf('000.000.001-92'), false)
+  assert.equal(isValidCpf('111.111.111-11'), false)
+  assert.equal(isValidCpf('***.456.789-**'), false)
+  assert.equal(formatCpf('00000000191'), '000.000.001-91')
+  assert.equal(maskCpf('000.000.001-91'), '***.***.***-91')
+  assert.equal(maskCpf('***.***.***-91'), '***.***.***-91')
+  // What the form sends is what the API gets, so the 2 digits in the table are the 2 last digits typed.
+  assert.equal(customerToApi({ agreementId: 'a1', name: 'Ana Teste', cpf: '000.000.001-91', monthlyIncome: 1 }).cpf, '00000000191')
+  for (const r of [0.1, 0.42, 0.9]) assert.ok(isValidCpf(formatCpf(cpfForApi('***.***.***-**', () => r))))
+})
+
+test('snapshot: a guest gets the income rounded to the nearest R$ 100', () => {
+  const snap = toSnapshot({ asOf: '2026-11-17T09:00:00Z', customers: [{ ...customer, netMonthlySalary: 2139.5 }, { ...customer, netMonthlySalary: 5250 }] })
+  assert.deepEqual(snap.customers.map((c) => c.monthlyIncome), [2100, 5300])
+  assert.equal(toCustomer({ ...customer, netMonthlySalary: 2139.5 }).monthlyIncome, 2139.5)
+})

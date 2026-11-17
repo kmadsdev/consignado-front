@@ -22,7 +22,7 @@ import { ArchitectureDiagram, LifecycleTimeline, useDemoTimeline } from '../diag
 import type { TraceRecord } from '../shell/context'
 import { Mono } from './common'
 import { DataTable, type Column } from './DataTable'
-import { brl, dateTime, duration, percent, relativeTime } from './format'
+import { brl, brlRound, dateTime, duration, percent, relativeTime } from './format'
 import { RequestInspector } from './RequestInspector'
 import { T } from './strings'
 
@@ -77,11 +77,11 @@ export function SimulatePage() {
     try {
       const res = await previewSimulation({ principal: p, termMonths: m, monthlyInterestRate: r / 100, monthlyIncome: i })
       setResult(res.data)
-      setRecord({ label: res.trace.events[0]?.detail ?? '', trace: res.trace, ok: true, at: Date.now() })
+      setRecord({ label: res.label, trace: res.trace, ok: true, at: Date.now() })
       setSaved((list) => [{ id: `${Date.now()}`, at: new Date().toISOString(), principal: p, termMonths: m, ratePercent: r, income: i, installment: res.data.installment, totalAmount: res.data.totalAmount, fitsMargin: res.data.fitsMargin, ms: res.trace.totalMs, cold: res.trace.cold }, ...list].slice(0, 12))
     } catch (err) {
       setFailure(err instanceof Error ? err.message : T.common.failed)
-      if (err instanceof ApiError && err.trace) setRecord({ label: err.trace.events[0]?.detail ?? '', trace: err.trace, ok: false, message: err.message, at: Date.now() })
+      if (err instanceof ApiError && err.trace) setRecord({ label: err.label ?? '', trace: err.trace, ok: false, message: err.message, at: Date.now() })
     } finally {
       window.clearTimeout(slowTimer); setBusy(false); setSlow(false)
     }
@@ -97,7 +97,7 @@ export function SimulatePage() {
     { id: 'name', header: T.col.name, cell: (c) => <Mono>{c.name}</Mono>, minWidth: 200 },
     { id: 'cpf', header: T.col.cpf, cell: (c) => <Mono>{c.cpf}</Mono> },
     { id: 'agreement', header: T.col.agreement, cell: (c) => c.agreementCode, sortingField: 'agreementCode' },
-    { id: 'income', header: T.guest.colIncome, cell: (c) => <Mono>{brl(c.monthlyIncome)}</Mono>, sortingField: 'monthlyIncome' },
+    { id: 'income', header: T.guest.colIncome, cell: (c) => <Mono>{brlRound(c.monthlyIncome)}</Mono>, sortingField: 'monthlyIncome' },
     { id: 'contracts', header: T.guest.colContracts, cell: (c) => <Mono>{c.contracts}</Mono>, sortingField: 'contracts' },
   ]
 
