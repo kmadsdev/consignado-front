@@ -10,13 +10,12 @@ import Select from '@cloudscape-design/components/select'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator from '@cloudscape-design/components/status-indicator'
 import { useState } from 'react'
-import { installmentOf, randomCustomerInput, type CustomerInput, type IncomeResult, type SimulationResult } from '../api/client'
+import { formatCpf, installmentOf, isValidCpf, randomCustomerInput, type CustomerInput, type IncomeResult, type SimulationResult } from '../api/client'
 import type { Agreement, Customer, Margin } from '../api/types'
 import { Mono } from './common'
 import { brl, percent } from './format'
 import { T } from './strings'
 
-const CPF_MASK = /^\*\*\*\.\d{3}\.\d{3}-\*\*$/
 const toNumber = (text: string) => Number(text.replace(',', '.'))
 
 export function MarginPairs({ margin }: { margin: Margin }) {
@@ -46,7 +45,7 @@ export function AddCustomerModal(props: { agreements: Agreement[]; busy: boolean
   const errors = {
     agreement: agreementId ? '' : T.addCustomer.errAgreement,
     name: name.trim().length >= 3 ? '' : T.addCustomer.errName,
-    cpf: CPF_MASK.test(cpf) ? '' : T.addCustomer.errCpf,
+    cpf: isValidCpf(cpf) ? '' : T.addCustomer.errCpf,
     income: toNumber(income) > 0 ? '' : T.addCustomer.errIncome,
   }
   const valid = !errors.agreement && !errors.name && !errors.cpf && !errors.income
@@ -56,7 +55,7 @@ export function AddCustomerModal(props: { agreements: Agreement[]; busy: boolean
   }
   const submit = () => {
     setTouched(true)
-    if (valid) props.onSubmit({ agreementId, name, cpf, monthlyIncome: toNumber(income) })
+    if (valid) props.onSubmit({ agreementId, name, cpf: formatCpf(cpf), monthlyIncome: toNumber(income) })
   }
   return (
     <Modal
@@ -91,7 +90,7 @@ export function AddCustomerModal(props: { agreements: Agreement[]; busy: boolean
           </FormField>
           <ColumnLayout columns={2}>
             <FormField label={T.addCustomer.cpf} description={T.addCustomer.cpfHint} errorText={touched ? errors.cpf : ''}>
-              <Input value={cpf} onChange={(e) => setCpf(e.detail.value)} placeholder="***.456.789-**" autoComplete={false} />
+              <Input value={cpf} onChange={(e) => setCpf(e.detail.value)} placeholder="000.000.000-00" autoComplete={false} />
             </FormField>
             <FormField label={T.addCustomer.income} description={T.common.brlHint} errorText={touched ? errors.income : ''}>
               <Input value={income} onChange={(e) => setIncome(e.detail.value)} type="number" inputMode="decimal" placeholder="4500" />

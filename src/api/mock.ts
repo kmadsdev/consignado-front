@@ -6,14 +6,14 @@ import type {
   EngineState, HostKind, LifecycleEvent, Margin, Me, Profile, RequestTrace, Session, Simulation,
 } from './types'
 import { ApiError } from './errors'
-import type { PageInfo } from './map'
+import { cpfForApi, formatCpf, maskCpf, type PageInfo } from './map'
 
 // ---- types that the contract does not have yet (listed in the report) ---------
 export type PersonaId = 'guest' | 'recruiter' | 'recruiter-new' | 'recruiter-held' | 'recruiter-spent' | 'admin'
 export type ContractAction = 'approve' | 'reject' | 'activate' | 'settle' | 'cancel'
 export type AdminUserAction = 'approve' | 'hold' | 'block' | 'grant-windows'
 /** `page` is set by the real client for a paged listing. */
-export interface ApiResult<T> { data: T; trace: RequestTrace; page?: PageInfo }
+export interface ApiResult<T> { data: T; trace: RequestTrace; page?: PageInfo; /** Method and path of the call, for example `POST /api/fn/api/v1/customers`. */ label: string }
 export interface CustomerInput { agreementId: string; name: string; cpf: string; monthlyIncome: number }
 export interface SimulationInput { customerId: string; principal: number; termMonths: number }
 export interface SimulationResult { simulation: Simulation; margin: Margin; fitsMargin: boolean }
@@ -86,15 +86,14 @@ const FIRST = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elaine', 'Fábio', 'Gabriela',
 const LAST = ['Almeida', 'Barbosa', 'Cardoso', 'Duarte', 'Esteves', 'Farias', 'Gouveia', 'Honorato', 'Lacerda', 'Macedo', 'Nogueira', 'Pacheco', 'Queiroz', 'Rezende', 'Sampaio', 'Teixeira', 'Valadares', 'Xavier', 'Moraes', 'Bittencourt']
 
 export function randomCpfMasked(r: () => number = Math.random): string {
-  const d = () => String(Math.floor(r() * 1000)).padStart(3, '0')
-  return `***.${d()}.${d()}-**`
+  return `***.***.***-${String(Math.floor(r() * 100)).padStart(2, '0')}`
 }
 export function randomCustomerInput(agreements: Agreement[]): CustomerInput {
   const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)]
   return {
     agreementId: pick(agreements).id,
     name: `${pick(FIRST)} ${pick(LAST)} ${pick(LAST)}`,
-    cpf: randomCpfMasked(),
+    cpf: formatCpf(cpfForApi('***.***.***-**')),
     monthlyIncome: rnd(18, 140) * 100,
   }
 }
@@ -339,8 +338,8 @@ function buildTrace(host: HostKind, opts: TraceOptions): RequestTrace {
     parts.push(['identity', rnd(9, 28), persona === 'guest' ? 'no token: guest, stateless call only' : 'Entra ID token is valid'])
     parts.push(['keyvault', rnd(8, 21), 'secrets read from the cache'])
     if (cold) {
-      parts.push(['function-cold-start', rnd(6100, 7300), 'Functions host allocated a new instance'])
-      parts.push(['jvm-start', rnd(2100, 2800), 'Spring Boot started inside the function'])
+      parts.push(['function-cold-start', rnd(13200, 16800), 'Functions host allocated a new instance'])
+      parts.push(['jvm-start', rnd(3600, 4900), 'Spring Boot started inside the function'])
     }
     if (opts.database !== false) parts.push(['database', rnd(14, 88), 'PostgreSQL answered'])
     parts.push(['response', rnd(5, 14), '200'])
@@ -378,7 +377,8 @@ function checkHost(host: HostKind): SessionRec | null {
   return s
 }
 /** Runs one domain call on a host: waits the traced time, then applies `fn`. */
-async function call<T>(host: HostKind, label: string, fn: () => T, opts: Partial<TraceOptions> = {}): Promise<ApiResult<T>> {
+async function call<T>(host: HostKind, shortLabel: string, fn: () => T, opts: Partial<TraceOptions> = {}): Promise<ApiResult<T>> {
+  const label = shortLabel.replace(' /api/v1', ` /api/${host === 'functions' ? 'fn' : 'aks'}/api/v1`)
   const session = checkHost(host)
   const trace = buildTrace(host, { label, ...opts })
   await sleep(trace.totalMs)
@@ -393,12 +393,13 @@ async function call<T>(host: HostKind, label: string, fn: () => T, opts: Partial
       last.status = 'error'
       last.detail = `${err.status}: ${err.message}`
       err.trace = trace
+      err.label = label
     }
     persist()
     throw err
   }
   persist()
-  return { data, trace }
+  return { data, trace, label }
 }
 function requireWriter() {
   const u = requireUser()
@@ -518,7 +519,7 @@ export function createCustomer(host: HostKind, input: CustomerInput) {
     if (!db.agreements.some((a) => a.id === input.agreementId)) throw new ApiError(422, 'The agreement does not exist.')
     if (input.name.trim().length < 3) throw new ApiError(422, 'The name is too short.')
     if (!(input.monthlyIncome > 0)) throw new ApiError(422, 'The monthly income must be more than zero.')
-    const customer: Customer = { id: nextId('cus'), agreementId: input.agreementId, name: input.name.trim(), cpf: input.cpf, monthlyIncome: round2(input.monthlyIncome), createdAt: iso(Date.now()) }
+    const customer: Customer = { id: nextId('cus'), agreementId: input.agreementId, name: input.name.trim(), cpf: maskCpf(input.cpf), monthlyIncome: round2(input.monthlyIncome), createdAt: iso(Date.now()) }
     db.customers.push(customer)
     log(`added customer ${customer.id}`, host)
     return customer
@@ -586,23 +587,25 @@ export function contractAction(host: HostKind, id: string, action: ContractActio
 // ---- guest calls (stateless, no database) ------------------------------------------------
 export async function previewSimulation(input: PreviewInput): Promise<ApiResult<PreviewResult>> {
   const bad = !(input.principal >= 500) || !(input.termMonths >= 6 && input.termMonths <= 96) || !(input.monthlyInterestRate > 0 && input.monthlyInterestRate <= 0.05) || !(input.monthlyIncome > 0)
-  const trace = buildTrace('functions', { label: 'POST /api/v1/simulations/preview', database: false, ...(bad ? { errorAt: 'response', errorDetail: '422: the values are out of range' } : {}) })
+  const label = 'POST /api/fn/api/v1/simulations/preview'
+  const trace = buildTrace('functions', { label, database: false, ...(bad ? { errorAt: 'response', errorDetail: '422: the values are out of range' } : {}) })
   await sleep(trace.totalMs)
   record(trace)
   persist()
-  if (bad) throw new ApiError(422, 'The values are out of range. Amount from R$ 500,00, term 6 to 96 months, rate up to 5% per month.', trace)
+  if (bad) throw new ApiError(422, 'The values are out of range. Amount from R$ 500,00, term 6 to 96 months, rate up to 5% per month.', trace, undefined, undefined, label)
   const installment = installmentOf(input.principal, input.monthlyInterestRate, input.termMonths)
   const totalAmount = round2(installment * input.termMonths)
   const marginLimit = round2(input.monthlyIncome * 0.35)
-  return { data: { installment, totalAmount, totalInterest: round2(totalAmount - input.principal), marginLimit, fitsMargin: installment <= marginLimit }, trace }
+  return { data: { installment, totalAmount, totalInterest: round2(totalAmount - input.principal), marginLimit, fitsMargin: installment <= marginLimit }, trace, label }
 }
 export async function getSnapshot(): Promise<ApiResult<Snapshot>> {
-  const trace = buildTrace('functions', { label: 'GET /snapshot.json', staticOnly: true })
+  const label = 'GET /api/snapshot'
+  const trace = buildTrace('functions', { label, staticOnly: true })
   await sleep(trace.totalMs)
   const maskName = (name: string) => name.split(' ').map((w) => `${w[0]}${'*'.repeat(Math.max(2, Math.min(5, w.length - 1)))}`).join(' ')
-  const customers = db.customers.slice(0, 20).map((c) => ({ ...c, name: maskName(c.name), cpf: '***.***.***-**', monthlyIncome: Math.round(c.monthlyIncome / 500) * 500 }))
+  const customers = db.customers.slice(0, 20).map((c) => ({ ...c, name: maskName(c.name), cpf: '***.***.***-**', monthlyIncome: Math.round(c.monthlyIncome / 100) * 100 }))
   const ids = new Set(customers.map((c) => c.id))
-  return { data: { asOf: iso(Date.now() - 37 * 60_000), customers, contracts: db.contracts.filter((c) => ids.has(c.customerId)), agreements: [...db.agreements] }, trace }
+  return { data: { asOf: iso(Date.now() - 37 * 60_000), customers, contracts: db.contracts.filter((c) => ids.has(c.customerId)), agreements: [...db.agreements] }, trace, label }
 }
 
 // ---- admin ---------------------------------------------------------------------------------

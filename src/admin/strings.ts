@@ -60,7 +60,7 @@ export const A = {
     colUser: 'User',
     colState: 'State',
     colRequested: 'Requested',
-    colCold: 'Cold start',
+    colCold: 'Time to ready',
     colDuration: 'Window length',
     colRequests: 'Requests',
     state: { starting: 'Starting', ready: 'Open', ended: 'Ended', failed: 'Failed' } as Record<string, string>,

@@ -7,7 +7,8 @@ import * as real from './real'
 
 export { ApiError } from './errors'
 export { CONTRACT_TRANSITIONS, WINDOW_MINUTES, COMPRESSED_START_MS, installmentOf, randomCustomerInput } from './mock'
-export type { PageInfo } from './map'
+export { SLOW_CALL_MS, formatCpf, isValidCpf, speedOf } from './map'
+export type { PageInfo, Speed } from './map'
 
 export const getMe: typeof mock.getMe = MOCK ? mock.getMe : real.getMe
 export const saveProfile: typeof mock.saveProfile = MOCK ? mock.saveProfile : real.saveProfile
@@ -16,7 +17,6 @@ export const getHosts: typeof mock.getHosts = MOCK ? mock.getHosts : real.getHos
 export const getActivity: typeof mock.getActivity = MOCK ? mock.getActivity : real.getActivity
 export const startSession: typeof mock.startSession = MOCK ? mock.startSession : real.startSession
 export const getSession: typeof mock.getSession = MOCK ? mock.getSession : real.getSession
-export const endSession: typeof mock.endSession = MOCK ? mock.endSession : real.endSession
 export const listMySessions: typeof mock.listMySessions = MOCK ? mock.listMySessions : real.listMySessions
 export const sendContact: typeof mock.sendContact = MOCK ? mock.sendContact : real.sendContact
 export const listAgreements: typeof mock.listAgreements = MOCK ? mock.listAgreements : real.listAgreements

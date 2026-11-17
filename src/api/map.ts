@@ -82,7 +82,8 @@ export function toSnapshot(body: { asOf?: string; agreements?: ApiAgreement[]; c
   return {
     asOf: body?.asOf ?? new Date(0).toISOString(),
     agreements: (body?.agreements ?? []).map(toAgreement),
-    customers: (body?.customers ?? []).map(toCustomer),
+    // A guest sees the income rounded to the nearest R$ 100, never the exact value.
+    customers: (body?.customers ?? []).map(toCustomer).map((c) => ({ ...c, monthlyIncome: Math.round(c.monthlyIncome / 100) * 100 })),
     contracts: (body?.contracts ?? []).map(toContract),
   }
 }
@@ -117,6 +118,23 @@ export function cpfForApi(value: string, random: () => number = Math.random): st
   const d2 = checkDigit([...base, d1])
   return [...base, d1, d2].join('')
 }
+/** True for 11 digits with correct check digits (and not 11 equal digits). */
+export function isValidCpf(value: string): boolean {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length !== 11 || value.includes('*') || /^(\d)\1{10}$/.test(digits)) return false
+  const d = [...digits].map(Number)
+  return checkDigit(d.slice(0, 9)) === d[9] && checkDigit(d.slice(0, 10)) === d[10]
+}
+/** 11 digits as `000.000.000-00`. Other values come back as they are. */
+export function formatCpf(value: string): string {
+  const d = value.replace(/\D/g, '')
+  return d.length === 11 && !value.includes('*') ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : value
+}
+/** The mask of the API: only the 2 check digits show (`***.***.***-09`). */
+export function maskCpf(value: string): string {
+  const d = value.replace(/\D/g, '')
+  return d.length === 11 && !value.includes('*') ? `***.***.***-${d.slice(9)}` : value
+}
 export function customerToApi(input: { agreementId: string; name: string; cpf: string; monthlyIncome: number }, random?: () => number) {
   return { cpf: cpfForApi(input.cpf, random), fullName: input.name.trim(), agreementId: input.agreementId, netMonthlySalary: round2(input.monthlyIncome) }
 }
@@ -134,6 +152,23 @@ export function previewToApi(input: { principal: number; termMonths: number; mon
 }
 export function contractToApi(simulationId: string) {
   return { simulationId }
+}
+
+/** A call that is not a cold start but takes longer than this gets the neutral text "slow call". */
+export const SLOW_CALL_MS = 3000
+const COLD_STAGES = ['function-cold-start', 'jvm-start']
+/**
+ * Only the Functions host has a cold start. A trace of the Kubernetes host is never cold,
+ * and a trace that is not cold has no cold-start stages.
+ */
+export function normalizeTrace(trace: RequestTrace): RequestTrace {
+  const cold = trace.cold === true && trace.host === 'functions'
+  return { ...trace, cold, events: cold ? trace.events : trace.events.filter((e) => !COLD_STAGES.includes(e.stage)) }
+}
+export type Speed = 'cold' | 'slow' | 'warm'
+export function speedOf(trace: { host: HostKind; cold: boolean; totalMs: number }): Speed {
+  if (trace.cold && trace.host === 'functions') return 'cold'
+  return trace.totalMs > SLOW_CALL_MS ? 'slow' : 'warm'
 }
 
 // ---- trace header -----------------------------------------------------------------
@@ -158,7 +193,7 @@ export function parseTrace(header: string | null | undefined, hostHeader?: strin
       if (typeof e.ms === 'number' && Number.isFinite(e.ms)) event.ms = e.ms
       events.push(event)
     }
-    return { host, cold: raw.cold === true, totalMs: num(raw.totalMs), events }
+    return normalizeTrace({ host, cold: raw.cold === true, totalMs: num(raw.totalMs), events })
   } catch {
     return null
   }

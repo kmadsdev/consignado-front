@@ -7,7 +7,7 @@ import StatusIndicator from '@cloudscape-design/components/status-indicator'
 import Tabs from '@cloudscape-design/components/tabs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as api from '../api/client'
-import { ApiError, CONTRACT_TRANSITIONS, type ApiResult, type ContractAction, type IncomeResult, type SimulationResult } from '../api/client'
+import { ApiError, CONTRACT_TRANSITIONS, speedOf, type ApiResult, type ContractAction, type IncomeResult, type SimulationResult } from '../api/client'
 import type { Agreement, Contract, Customer, HostKind, Margin, Simulation } from '../api/types'
 import { useShell } from '../shell/context'
 import { ContractStatusText, CopyId, Mono } from './common'
@@ -58,7 +58,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
       const a = await api.listAgreements(host)
       if (seq !== loadSeq.current || !alive.current) return
       setAgreements(a.data)
-      showTrace({ label: a.trace.events[0]?.detail ?? 'GET /api/v1/agreements', trace: a.trace, ok: true, at: Date.now() })
+      showTrace({ label: a.label, trace: a.trace, ok: true, at: Date.now() })
       const [c, s, k] = await Promise.all([api.listCustomers(host), api.listSimulations(host), api.listContracts(host)])
       if (seq !== loadSeq.current || !alive.current) return
       setCustomers(c.data); setSimulations(s.data); setContracts(k.data)
@@ -79,15 +79,15 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
   /** Runs one write (or one traced read), shows the notice and opens the request inspector. */
   async function run<Data>(fn: () => Promise<ApiResult<Data>>, okText: (data: Data) => string): Promise<Data | undefined> {
     setBusy(true)
-    const slowTimer = window.setTimeout(() => notify({ id: 'op', type: 'in-progress', loading: true, content: T.ops.slow }), 1200)
+    const slowTimer = window.setTimeout(() => notify({ id: 'op', type: 'in-progress', loading: true, content: host === 'aks' ? T.ops.slowAks : T.ops.slow }), 1200)
     try {
       const res = await fn()
-      showTrace({ label: res.trace.events[0]?.detail ?? '', trace: res.trace, ok: true, at: Date.now() }, true)
-      notify({ id: 'op', type: 'success', content: `${okText(res.data)} ${T.ops.timing(duration(res.trace.totalMs), res.trace.cold)}` })
+      showTrace({ label: res.label, trace: res.trace, ok: true, at: Date.now() }, true)
+      notify({ id: 'op', type: 'success', content: `${okText(res.data)} ${T.ops.timing(duration(res.trace.totalMs), speedOf(res.trace))}` })
       return res.data
     } catch (err) {
       const apiError = err instanceof ApiError ? err : null
-      if (apiError?.trace) showTrace({ label: apiError.trace.events[0]?.detail ?? '', trace: apiError.trace, ok: false, message: apiError.message, at: Date.now() }, true)
+      if (apiError?.trace) showTrace({ label: apiError.label ?? '', trace: apiError.trace, ok: false, message: apiError.message, at: Date.now() }, true)
       notify({ id: 'op', type: 'error', header: T.ops.failed, content: err instanceof Error ? err.message : T.ops.unknownError })
       return undefined
     } finally {
@@ -136,7 +136,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
     if (!customer) return
     setModal('income')
     api.getMargin(host, customer.id)
-      .then((res) => { if (alive.current) { setMargin(res.data); showTrace({ label: res.trace.events[0]?.detail ?? '', trace: res.trace, ok: true, at: Date.now() }) } })
+      .then((res) => { if (alive.current) { setMargin(res.data); showTrace({ label: res.label, trace: res.trace, ok: true, at: Date.now() }) } })
       .catch(() => undefined)
   }
 
@@ -182,7 +182,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
     { id: 'created', header: T.col.created, cell: (a) => dateOnly(a.createdAt), sortingField: 'createdAt' },
   ]
 
-  const loadingText = slow ? T.ops.loadingSlow : T.ops.loading
+  const loadingText = slow ? (host === 'aks' ? T.ops.loadingSlowAks : T.ops.loadingSlow) : T.ops.loading
   const refresh = <Button iconName="refresh" ariaLabel={T.ops.refresh} onClick={() => void load()} disabled={loading} />
   const agreementOfCustomer = customer ? agreementById.get(customer.agreementId) : undefined
 
