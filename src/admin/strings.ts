@@ -1,5 +1,8 @@
-// Every user-visible string of the admin area.
-export const A = {
+// Every user-visible string of the admin area, in English. The pt-BR table is in strings.pt.ts.
+import { pick } from '../i18n/lang.ts'
+import { ptBR } from './strings.pt.ts'
+
+export const en = {
   title: 'Admin',
   description: 'For the owner: who uses the demo, what the cluster did, and how much of the monthly budget is spent.',
   tabsLabel: 'Admin sections',
@@ -116,3 +119,5 @@ export const A = {
     kind: { contact: 'Contact', 'more-windows': 'More windows' } as Record<string, string>,
   },
 }
+
+export const A = pick(en, ptBR)

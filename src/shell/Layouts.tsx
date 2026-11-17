@@ -89,7 +89,7 @@ export function AppShell() {
     { type: 'link', text: S.nav.simulate, href: '/app/simulate', info: <Badge color="grey">{S.nav.guestBadge}</Badge> },
     ...(role === 'admin' ? [{ type: 'link' as const, text: S.nav.admin, href: '/admin' }] : []),
     { type: 'divider' },
-    { type: 'link', text: S.nav.docs, href: S.docsUrl, external: true, externalIconAriaLabel: 'Opens in a new tab' },
+    { type: 'link', text: S.nav.docs, href: S.docsUrl, external: true, externalIconAriaLabel: S.aria.external },
     { type: 'link', text: S.nav.privacy, href: '/privacy' },
     { type: 'link', text: S.nav.terms, href: '/terms' },
   ]

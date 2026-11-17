@@ -1,13 +1,9 @@
-// Every user-visible string of the landing area. One file, so pt-BR can be added later.
+// Every user-visible string of the landing area, in English. The pt-BR table is in strings.pt.ts.
+import { pick } from '../i18n/lang.ts'
+import { ROUTES } from './routes.ts'
+import { ptBR } from './strings.pt.ts'
 
-export const ROUTES = {
-  home: '/',
-  contact: '/#contact',
-  simulate: '/app/simulate',
-  aks: '/app/aks',
-  privacy: '/privacy',
-  terms: '/terms',
-} as const
+export { ROUTES }
 
 export const NOTICE_DATE = '2026-11-17'
 
@@ -28,7 +24,7 @@ export interface LegalSection {
   link?: { text: string; href: string }
 }
 
-export const common = {
+const commonEn = {
   product: 'Consignado Cloud',
   footer: 'Technical demo. Not a credit offer. All data is synthetic.',
   footerNav: 'Legal',
@@ -39,7 +35,7 @@ export const common = {
   backHome: 'Back to the home page',
 }
 
-export const landing = {
+const landingEn = {
   header: {
     title: 'Consignado Cloud',
     tagline: 'One loan engine, two Azure hosts. Watch each request travel through the architecture, live.',
@@ -221,7 +217,7 @@ export const landing = {
   },
 }
 
-export const contactForm = {
+const contactFormEn = {
   name: 'Name',
   namePlaceholder: 'Your name',
   email: 'Email',
@@ -258,7 +254,7 @@ export const contactForm = {
   again: 'Send another message',
 }
 
-export const privacy = {
+const privacyEn = {
   title: 'Privacy notice',
   description:
     'How Consignado Cloud uses personal data, under the Brazilian General Data Protection Law (LGPD, Law 13.709/2018).',
@@ -351,7 +347,7 @@ export const privacy = {
   ] as LegalSection[],
 }
 
-export const terms = {
+const termsEn = {
   title: 'Terms of use',
   description: 'The conditions to use Consignado Cloud. They are short.',
   sections: [
@@ -401,3 +397,6 @@ export const terms = {
     },
   ] as LegalSection[],
 }
+
+export const en = { common: commonEn, landing: landingEn, contactForm: contactFormEn, privacy: privacyEn, terms: termsEn }
+export const { common, landing, contactForm, privacy, terms } = pick(en, ptBR)

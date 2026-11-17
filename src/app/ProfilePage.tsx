@@ -81,7 +81,7 @@ export function ProfilePage() {
                   <Input value={company} onChange={(e) => setCompany(e.detail.value)} autoComplete="organization" placeholder="Northwind Talent" />
                 </FormField>
                 <FormField label={T.profile.linkedin} description={T.profile.linkedinHint} errorText={touched ? errors.linkedin : ''}>
-                  <Input value={linkedin} onChange={(e) => setLinkedin(e.detail.value)} type="url" inputMode="url" placeholder="https://www.linkedin.com/in/your-name" />
+                  <Input value={linkedin} onChange={(e) => setLinkedin(e.detail.value)} type="url" inputMode="url" placeholder={T.profile.linkedinPlaceholder} />
                 </FormField>
               </SpaceBetween>
             </Container>

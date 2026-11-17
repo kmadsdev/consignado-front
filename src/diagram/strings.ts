@@ -1,6 +1,11 @@
-// Every user-visible string of the diagram area. English now; pt-BR can be added later.
+// Every user-visible string of the diagram area, in English. The pt-BR table is in strings.pt.ts.
+import { pick } from '../i18n/lang.ts'
+import { ptBR } from './strings.pt.ts'
 
-export const STAGE_NAMES: Record<string, string> = {
+/** One service node: its name, its sub-label and the one-line explanation. */
+export interface NodeText { label: string; sub: string | undefined; what: string }
+
+const STAGE_NAMES_EN: Record<string, string> = {
   request: 'Browser sends the request',
   edge: 'Cloudflare edge checks and forwards',
   gateway: 'Gateway accepts the request',
@@ -25,7 +30,7 @@ export const STAGE_NAMES: Record<string, string> = {
   response: 'Response returns to the browser',
 }
 
-export const N = {
+const N_EN = {
   user: { label: 'User', sub: 'browser', what: 'Your browser sends the request and draws the answer.' },
   frontdoor: { label: 'Cloudflare edge', sub: 'CDN + WAF + TLS', what: 'The Cloudflare edge ends TLS, applies the WAF rules and the rate limit, then forwards the request.' },
   blob: { label: 'Blob Storage', sub: 'static site', what: 'Blob Storage holds the files of this web page. The Cloudflare edge serves them from its cache.' },
@@ -49,9 +54,9 @@ export const N = {
   kubelet: { label: 'kubelet', sub: 'node agent', what: 'The node VM boots and its kubelet reports Ready. Then it pulls the image and starts the container.' },
   csi: { label: 'Secrets Store CSI', sub: 'DB password', what: 'The CSI driver reads the database password from Key Vault and mounts it into the pod as a file.' },
   window: { label: 'Access window', sub: '15 minutes', what: 'The countdown of your 15-minute access window. When it ends, the cluster stops and the cost goes to idle.' },
-} as const
+} satisfies Record<string, NodeText>
 
-export const G = {
+const G_EN = {
   edge: 'Edge',
   serverless: 'Serverless host · Azure Functions',
   vnet: 'Virtual network · private subnet',
@@ -63,7 +68,7 @@ export const G = {
   ci: 'CI/CD',
 }
 
-export const E = {
+const E_EN = {
   https: 'HTTPS',
   api: '/api/*',
   pageLoad: 'page load',
@@ -85,7 +90,10 @@ export const E = {
   invoke: 'invoke',
 }
 
-export const UI = {
+const UI_EN = {
+  cold: '(cold run)',
+  warm: (run: number) => `(warm run ${run})`,
+  hostOfRequest: 'Host of the simulated request',
   legend: 'Legend',
   legendRequest: 'Request path',
   legendTrust: 'Identity and trust',
@@ -124,7 +132,7 @@ export const UI = {
 }
 
 /** Detail texts of the fake event stream. */
-export const DEMO_DETAIL: Record<string, string> = {
+const DEMO_DETAIL_EN: Record<string, string> = {
   request: 'POST /api/v1/simulations',
   edge: 'WAF passed, PoP GRU',
   gateway: 'route accepted',
@@ -150,3 +158,7 @@ export const DEMO_DETAIL: Record<string, string> = {
   response: '201 Created',
   warmSkip: 'warm instance, step skipped',
 }
+
+export const en = { STAGE_NAMES: STAGE_NAMES_EN, N: N_EN as Record<keyof typeof N_EN, NodeText>, G: G_EN, E: E_EN, UI: UI_EN, DEMO_DETAIL: DEMO_DETAIL_EN }
+const active = pick(en, ptBR)
+export const { STAGE_NAMES, N, G, E, UI, DEMO_DETAIL } = active

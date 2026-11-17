@@ -1,5 +1,8 @@
-// Every user-visible string of the shell. English now; pt-BR can be added later.
-export const S = {
+// Every user-visible string of the shell, in English. The pt-BR table is in strings.pt.ts.
+import { pick } from '../i18n/lang.ts'
+import { ptBR } from './strings.pt.ts'
+
+export const en = {
   brand: 'Consignado Cloud',
   brandAlt: 'Consignado Cloud glyph',
   footer: 'Technical demo. Not a credit offer. All data is synthetic.',
@@ -11,6 +14,8 @@ export const S = {
     } as Record<string, string>,
     pausedBy: { budget: 'paused (budget limit)', admin: 'paused (by the owner)' } as Record<string, string>,
   },
+  metaDescription: 'Consignado Cloud: one payroll-loan API on two Azure hosts, with every request drawn live. Technical demo with synthetic data.',
+  lang: { label: 'EN | PT', title: 'Language', en: 'English', pt: 'Português (Brasil)' },
   theme: { toDark: 'Dark mode', toLight: 'Light mode', title: 'Switch between light and dark mode' },
   preview: {
     label: (name: string) => `Preview as: ${name}`,
@@ -54,7 +59,7 @@ export const S = {
   docsUrl: 'https://github.com/kmadsdev/consignado-api/tree/main/docs/platform',
   aria: {
     navigation: 'Side navigation', navigationClose: 'Close the side navigation', navigationToggle: 'Open the side navigation',
-    notifications: 'Notifications', breadcrumbs: 'Breadcrumbs', overflow: 'More', overflowTitle: 'All', overflowBack: 'Back', overflowDismiss: 'Close the menu',
+    notifications: 'Notifications', breadcrumbs: 'Breadcrumbs', overflow: 'More', overflowTitle: 'All', overflowBack: 'Back', overflowDismiss: 'Close the menu', external: 'Opens in a new tab',
   },
   inspector: {
     title: 'Request inspector',
@@ -67,3 +72,5 @@ export const S = {
     app: 'Open the overview',
   },
 }
+
+export const S = pick(en, ptBR)

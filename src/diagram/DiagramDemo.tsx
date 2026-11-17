@@ -53,7 +53,7 @@ export function DiagramDemo() {
   const withTimeline = (v: 'aks' | 'functions', height: number) => (
     <Grid gridDefinition={[{ colspan: { default: 12, l: 9 } }, { colspan: { default: 12, l: 3 } }]}>
       {diagram(v, height)}
-      <Container header={<Header variant="h3" counter={v === 'functions' && fn.events.length > 0 ? (fn.run === 0 ? '(cold run)' : `(warm run ${fn.run})`) : undefined}>{T.timeline}</Header>}>
+      <Container header={<Header variant="h3" counter={v === 'functions' && fn.events.length > 0 ? (fn.run === 0 ? UI.cold : UI.warm(fn.run)) : undefined}>{T.timeline}</Header>}>
         <LifecycleTimeline view={v} events={demo.events} />
       </Container>
     </Grid>
@@ -88,7 +88,7 @@ export function DiagramDemo() {
                   <SegmentedControl
                     selectedId={host}
                     onChange={({ detail }) => { reset(); setHost(detail.selectedId as HostKind) }}
-                    label="Host of the simulated request"
+                    label={UI.hostOfRequest}
                     options={[{ id: 'aks', text: T.hostAks }, { id: 'functions', text: T.hostFn }]}
                   />
                   {diagram('overview', 620)}
