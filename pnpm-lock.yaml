@@ -11,6 +11,9 @@ importers:
       '@azure/msal-browser':
         specifier: ^5.29.1
         version: 5.29.1
+      '@cloudscape-design/collection-hooks':
+        specifier: ^1.0.111
+        version: 1.0.111(react@19.3.1)
       '@cloudscape-design/components':
         specifier: ^3.0.1413
         version: 3.0.1413(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
