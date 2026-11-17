@@ -16,7 +16,7 @@ import { ApiError, previewSimulation, type PreviewResult } from '../api/client'
 import { LOCALE } from '../i18n/lang.ts'
 import { Mono } from './common'
 import { brl, duration, percent } from './format'
-import { RequestFlow, type FlowRecord } from './RequestFlow'
+import { RequestFlow, saveRecord, type FlowRecord } from './RequestFlow'
 import { T } from './strings'
 
 interface Row { id: string; at: number; principal: number; termMonths: number; ratePercent: number; income: number; installment?: number; error?: string; ms: number }
@@ -58,7 +58,7 @@ export function WindowPreview({ ready }: { ready: boolean }) {
       const res = await previewSimulation({ principal: p, termMonths: m, monthlyInterestRate: r / 100, monthlyIncome: i }, 'aks')
       const browserMs = Math.round(performance.now() - started)
       setResult(res.data)
-      setRecord({ label: res.label, trace: res.trace, ok: true, at: Date.now(), browserMs, status: 200 })
+      setRecord(saveRecord({ label: res.label, trace: res.trace, ok: true, at: Date.now(), browserMs, status: res.trace.status ?? 200 }))
       setRows((list) => [{ ...row, installment: res.data.installment, ms: browserMs }, ...list].slice(0, 20))
     } catch (err) {
       const browserMs = Math.round(performance.now() - started)
@@ -68,7 +68,7 @@ export function WindowPreview({ ready }: { ready: boolean }) {
       setResult(null)
       if (err instanceof ApiError) {
         setRows((list) => [{ ...row, error: T.flow.httpError(err.status, T.flow.httpWords(err.status), err.code), ms: browserMs }, ...list].slice(0, 20))
-        if (err.trace) setRecord({ label: err.label ?? '', trace: err.trace, ok: false, message, at: Date.now(), browserMs, status: err.status, code: err.code })
+        if (err.trace) setRecord(saveRecord({ label: err.label ?? '', trace: err.trace, ok: false, message, at: Date.now(), browserMs, status: err.status, code: err.code }))
       }
     } finally {
       setBusy(false)

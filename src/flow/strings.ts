@@ -1,0 +1,141 @@
+// Every user-visible string of the request flow, the replay and the request inspector, in English.
+// The pt-BR table is in strings.pt.ts.
+import { pick } from '../i18n/lang.ts'
+import { ptBR } from './strings.pt.ts'
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+export const en = {
+  /** Short stage names: checklist rows and the one-line path of an inline record. */
+  stage: {
+    request: 'browser', edge: 'edge', gateway: 'gateway', identity: 'Entra ID', quota: 'quota', keyvault: 'Key Vault',
+    'function-cold-start': 'cold start', 'jvm-start': 'JVM start', 'functions-host': 'Functions host', 'load-balancer': 'load balancer',
+    app: 'app', database: 'database', response: 'response',
+  } as Record<string, string>,
+  /** Long stage names of the checklist table. */
+  stageLong: {
+    request: 'Browser sends the request',
+    edge: 'Cloudflare edge checks and forwards',
+    gateway: 'Gateway accepts the request',
+    identity: 'Entra ID token is checked',
+    quota: 'Access window and budget are checked',
+    keyvault: 'Gateway reads its secrets (Key Vault)',
+    'function-cold-start': 'Functions host allocates an instance',
+    'jvm-start': 'Spring Boot starts in the function',
+    'functions-host': 'Functions host and network, both ways',
+    'load-balancer': 'Internal load balancer and network, both ways',
+    app: 'Spring Boot handles the request',
+    database: 'PostgreSQL statements',
+    response: 'Response returns to the browser',
+  } as Record<string, string>,
+  node: {
+    browser: 'Browser', edge: 'Cloudflare edge', gateway: 'Gateway', identity: 'Entra ID', keyvault: 'Key Vault',
+    fnhost: 'Functions host', app: 'Spring Boot API', lb: 'Load balancer', service: 'Service', pod: 'Pod', database: 'PostgreSQL',
+  } as Record<string, string>,
+  nodeSub: {
+    browser: 'this page', edge: 'WAF, rate limit', gateway: 'Java function', identity: 'token check', keyvault: 'secrets',
+    fnhost: 'Flex Consumption', app: 'Spring Boot', lb: 'internal', service: 'ClusterIP', pod: 'Spring Boot', database: 'flexible server',
+  } as Record<string, string>,
+  nodeWhat: {
+    browser: 'Your browser sent the request and measured the whole time.',
+    edge: 'The Cloudflare edge ends TLS, applies the WAF rules and the rate limit, then forwards the request to the gateway.',
+    gateway: 'The gateway function checks who you are and what you may use, then sends the call to one of the two hosts.',
+    identity: 'The gateway checked the Entra ID token of this request. A guest sends no token, so this step is not there for a guest.',
+    keyvault: 'The gateway reads its secrets from Key Vault. After the first read they come from its memory cache.',
+    fnhost: 'The Azure Functions host receives the call and passes it to the Spring Boot API. The time includes the network both ways.',
+    app: 'The Spring Boot API ran the business rules for this request.',
+    lb: 'The internal Azure Load Balancer gives the cluster a private address. The time includes the network both ways.',
+    service: 'The Kubernetes Service sends the call to a pod that is Ready.',
+    pod: 'A pod runs the same Spring Boot API that the function runs.',
+    database: 'Azure Database for PostgreSQL flexible server: every write and every read of the shared data goes here.',
+  } as Record<string, string>,
+  close: 'Close',
+  cached: 'cached',
+  answered: 'answered',
+  otherPod: 'other pod',
+  statements: (n: number) => plural(n, 'statement', 'statements'),
+  kinds: { select: 'select', insert: 'insert', update: 'update', delete: 'delete', other: 'other' },
+  noDatabase: 'This request ran no SQL statement.',
+  oldTrace: 'The API host did not report its own timing for this request (older image). The path ends at the host.',
+  live: { up: 'up', degraded: 'degraded', down: 'down', stopped: 'stopped', starting: 'starting', unknown: 'unknown' } as Record<string, string>,
+  diagramLabel: (label: string) => `Path of the request ${label}`,
+  // ---- transport
+  transport: {
+    label: 'Replay',
+    play: 'Play',
+    pause: 'Pause',
+    restart: 'Restart',
+    position: 'Position in the run',
+    speed: 'Speed',
+    speedHint: '100% = the real duration of the run',
+    elapsed: (now: string, total: string) => `${now} of ${total}`,
+    speedOption: (n: number) => `${n}%`,
+    lasts: (wall: string) => `lasts ${wall}`,
+  },
+  // ---- request detail
+  detail: {
+    request: 'Request',
+    status: 'HTTP status',
+    host: 'Host',
+    instance: 'Instance that answered',
+    browserTotal: 'Browser total',
+    gatewayTotal: 'Gateway total',
+    edgeNetwork: 'Edge + network',
+    edgeHint: 'Browser total minus the gateway total. The gateway cannot measure the edge and the internet path.',
+    build: 'Build that answered',
+    noBuild: 'not reported',
+    unknown: 'not reported',
+    cold: 'cold', warm: 'warm', slow: 'slow call',
+    copy: 'Copy trace as JSON',
+    copied: 'Trace copied',
+    copyFailed: 'Copy failed',
+    stagesTitle: 'Stages',
+    colStage: 'Stage', colStatus: 'Status', colStart: 'Start', colDuration: 'Duration', colShare: 'Share of total', colDetail: 'Detail',
+    statusText: { done: 'done', error: 'failed', active: 'running', pending: 'waiting' } as Record<string, string>,
+    flowTitle: 'Flow',
+    noError: 'Completed',
+  },
+  db: {
+    title: 'Database',
+    time: 'Database time',
+    statements: 'Statements',
+    byKind: 'By kind',
+    connection: 'Connection wait',
+    share: 'Share of the gateway total',
+    server: 'Server',
+    region: 'Region',
+    hostRegion: 'Host region',
+    otherRegion: (db: string, host: string) => `The database is in ${db} and the hosts are in ${host}. Every statement crosses that distance, so the database time is mostly network time.`,
+    fromDetail: 'Counts read from the stage detail (the API did not send the timing header).',
+    none: 'This request ran no SQL statement.',
+  },
+  // ---- inspector drawer
+  inspector: {
+    title: 'Request inspector',
+    trigger: 'Open the request inspector',
+    close: 'Close the request inspector',
+    resize: 'Resize the request inspector',
+    tabRequests: 'Requests',
+    tabCluster: 'Cluster start',
+    listTitle: (n: number) => `Requests of this session (${n})`,
+    empty: 'No request yet. Every call to the API of this browser session shows here, newest first.',
+    clear: 'Clear the list',
+    colTime: 'Time', colMethod: 'Method', colPath: 'Path', colHost: 'Host', colStatus: 'Status', colTotal: 'Total', colSpeed: 'Cold or warm',
+    selected: 'Selected request',
+    selectHint: 'Select a request in the list.',
+    clusterTitle: 'Cluster start of this window',
+    clusterEmpty: 'Open a live access window to see its cluster start here.',
+    clusterStages: 'Lifecycle checklist',
+    colTs: 'Time',
+    errorMark: 'error',
+  },
+  // ---- inline record
+  inline: {
+    open: 'Open in inspector',
+    cold: 'cold', warm: 'warm', slow: 'slow call',
+    failed: (status: number, code?: string) => (status ? `HTTP ${status}${code ? ` (${code})` : ''}` : 'no answer'),
+    ok: (status: number) => `HTTP ${status}`,
+  },
+}
+
+export const F = pick(en, ptBR)

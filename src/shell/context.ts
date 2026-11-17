@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react'
-import type { Engine, RequestTrace } from '../api/types'
+import type { Engine, LifecycleEvent, RequestTrace } from '../api/types'
 
 export interface Notice {
   id?: string
@@ -17,17 +17,31 @@ export interface TraceRecord {
   message?: string
   at: number
 }
+export interface ClusterRun {
+  /** Changes when a new run is recorded (the session id). */
+  key: string
+  events: LifecycleEvent[]
+}
+export type InspectorTab = 'requests' | 'cluster'
 export interface ShellValue {
   notices: StoredNotice[]
   notify: (notice: Notice) => string
   dismiss: (id: string) => void
   engine: Engine | null
   refreshEngine: () => void
+  /** The newest request of this session (for the overview diagram). */
   traceRecord: TraceRecord | null
-  /** Stores the trace of the last request. `open` also opens the inspector panel. */
-  showTrace: (record: TraceRecord, open?: boolean) => void
+  /** Opens the request inspector drawer; with an id, on that request. */
+  openInspector: (id?: string) => void
   inspectorOpen: boolean
   setInspectorOpen: (open: boolean) => void
+  inspectorSelected: string | null
+  selectRequest: (id: string | null) => void
+  inspectorTab: InspectorTab
+  setInspectorTab: (tab: InspectorTab) => void
+  /** The recorded cluster start of the open access window (tab "Cluster start" of the inspector). */
+  clusterRun: ClusterRun | null
+  setClusterRun: (run: ClusterRun | null) => void
 }
 export const ShellContext = createContext<ShellValue | null>(null)
 export function useShell(): ShellValue {
