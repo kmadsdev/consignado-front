@@ -79,7 +79,7 @@ const overviewBase = {
   svcs: [
     svc('user', 70, 290, 'az:browser', N.user),
     svc('blob', 225, 120, 'az:storage-account', N.blob, 'bottom'),
-    svc('frontdoor', 225, 290, 'az:front-door', N.frontdoor),
+    svc('frontdoor', 225, 290, 'glyph:edge', N.frontdoor),
     svc('keyvault', 440, 120, 'az:key-vault', N.keyvault, 'bottom'),
     svc('gateway', 440, 290, 'az:function-app', N.gateway),
     svc('entra', 440, 500, 'az:entra-external-id', N.entra),
@@ -161,7 +161,7 @@ const OVERVIEW_AKS_MAP: Record<string, StageTarget> = {
 const AKS_VIEW: ViewDef = {
   svcs: [
     svc('user', 60, 330, 'az:browser', N.user),
-    svc('frontdoor', 195, 330, 'az:front-door', N.frontdoor),
+    svc('frontdoor', 195, 330, 'glyph:edge', N.frontdoor),
     svc('gateway', 340, 330, 'az:function-app', N.gatewayAks),
     svc('entra', 340, 150, 'az:entra-external-id', N.entra, 'bottom'),
     svc('keyvault', 340, 520, 'az:key-vault', N.keyvault),
@@ -228,7 +228,7 @@ const FUNCTIONS_VIEW: ViewDef = {
   svcs: [
     svc('user', 70, 260, 'az:browser', N.user),
     svc('blob', 225, 90, 'az:storage-account', N.blob, 'bottom'),
-    svc('frontdoor', 225, 260, 'az:front-door', N.frontdoor),
+    svc('frontdoor', 225, 260, 'glyph:edge', N.frontdoor),
     svc('entra', 400, 90, 'az:entra-external-id', N.entra, 'bottom'),
     svc('gateway', 400, 260, 'az:function-app', N.gateway),
     svc('keyvault', 400, 440, 'az:key-vault', N.keyvault),

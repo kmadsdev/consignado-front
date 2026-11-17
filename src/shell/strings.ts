@@ -9,6 +9,7 @@ export const S = {
     states: {
       stopped: 'stopped', starting: 'starting', running: 'running', stopping: 'stopping', cooldown: 'cooldown', paused: 'paused',
     } as Record<string, string>,
+    pausedBy: { budget: 'paused (budget limit)', admin: 'paused (by the owner)' } as Record<string, string>,
   },
   theme: { toDark: 'Dark mode', toLight: 'Light mode', title: 'Switch between light and dark mode' },
   preview: {
@@ -50,7 +51,7 @@ export const S = {
     sectionOwner: 'Owner',
     sectionMore: 'More',
   },
-  docsUrl: 'https://github.com/kmadsdev/consignado-platform',
+  docsUrl: 'https://github.com/kmadsdev/consignado-api/tree/main/docs/platform',
   aria: {
     navigation: 'Side navigation', navigationClose: 'Close the side navigation', navigationToggle: 'Open the side navigation',
     notifications: 'Notifications', breadcrumbs: 'Breadcrumbs', overflow: 'More', overflowTitle: 'All', overflowBack: 'Back', overflowDismiss: 'Close the menu',

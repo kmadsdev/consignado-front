@@ -14,9 +14,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { saveProfile } from '../api/client'
 import { useAuth } from '../auth'
+import { Turnstile, turnstileOn } from '../shell/Turnstile'
 import { T } from './strings'
 
-const LINKEDIN = /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[A-Za-z0-9\-_%]{3,}\/?$/
+const LINKEDIN = /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[A-Za-z0-9\-_%.]{3,100}\/?$/
 
 /** Shown in place of any signed-in page while `me.profileComplete` is false. */
 export function ProfilePage() {
@@ -29,21 +30,23 @@ export function ProfilePage() {
   const [touched, setTouched] = useState(false)
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState('')
+  const [botToken, setBotToken] = useState('')
 
   const errors = {
     name: name.trim().length >= 3 ? '' : T.profile.errName,
     company: company.trim().length >= 2 ? '' : T.profile.errCompany,
     linkedin: LINKEDIN.test(linkedin.trim()) ? '' : T.profile.errLinkedin,
     consent: consent ? '' : T.profile.errConsent,
+    bot: !turnstileOn || botToken ? '' : T.profile.errBot,
   }
-  const valid = !errors.name && !errors.company && !errors.linkedin && !errors.consent
+  const valid = !errors.name && !errors.company && !errors.linkedin && !errors.consent && !errors.bot
 
   const submit = async () => {
     setTouched(true)
     if (!valid) return
     setSaving(true); setFailure('')
     try {
-      await saveProfile({ name, company, linkedin, consent })
+      await saveProfile({ name, company, linkedin, consent }, { turnstileToken: botToken })
       await refresh()
       navigate('/app')
     } catch (err) {
@@ -90,12 +93,20 @@ export function ProfilePage() {
                     <Link href="/privacy" onFollow={(e) => { e.preventDefault(); navigate('/privacy') }}>{T.profile.privacyLink}</Link>.
                   </Checkbox>
                 </FormField>
-                <div className="turnstile-box" role="group" aria-label={T.profile.turnstileTitle}>
-                  <SpaceBetween size="xxs">
-                    <StatusIndicator type="pending">{T.profile.turnstileTitle}</StatusIndicator>
-                    <Box color="text-body-secondary" fontSize="body-s">{T.profile.turnstileText}</Box>
-                  </SpaceBetween>
-                </div>
+                <FormField errorText={touched ? errors.bot : ''}>
+                  <Turnstile
+                    onToken={setBotToken}
+                    failedText={T.profile.botLoadFailed}
+                    placeholder={
+                      <div className="turnstile-box" role="group" aria-label={T.profile.turnstileTitle}>
+                        <SpaceBetween size="xxs">
+                          <StatusIndicator type="pending">{T.profile.turnstileTitle}</StatusIndicator>
+                          <Box color="text-body-secondary" fontSize="body-s">{T.profile.turnstileText}</Box>
+                        </SpaceBetween>
+                      </div>
+                    }
+                  />
+                </FormField>
               </SpaceBetween>
             </Container>
           </SpaceBetween>

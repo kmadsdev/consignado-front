@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { getEngine } from '../api/client'
 import type { Engine } from '../api/types'
 import { useAuth } from '../auth'
+import { POLL } from '../config'
 import { ShellContext, type Notice, type ShellValue, type StoredNotice, type TraceRecord } from './context'
 
 /** State that every page shares: notifications, the engine state, the last request trace. */
@@ -36,7 +37,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const t = window.setInterval(refreshEngine, 4000)
+    const t = window.setInterval(refreshEngine, POLL.engine)
     return () => window.clearInterval(t)
   }, [refreshEngine])
 
