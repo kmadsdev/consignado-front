@@ -442,6 +442,21 @@ export const en = {
     cta: 'Sign in for the real one',
     ctaSigned: 'Open the Kubernetes host',
   },
+  windowPreview: {
+    title: 'Send a request to the Kubernetes host',
+    hint: 'The loan preview of the serverless page, sent through the gateway and the internal Load Balancer to the pods of this window. Stateless: nothing is saved.',
+    submit: 'Calculate on the Kubernetes host',
+    waiting: 'The form becomes active when the pods answer.',
+    endedTitle: 'This window has ended',
+    endedText: 'The Kubernetes host does not take requests now. Start a new window to send more.',
+    requestHint: 'The true path and timing of your last request to the pods.',
+    requestEmpty: 'Calculate a preview, and its path shows here: the Cloudflare edge, the gateway, the internal Load Balancer, then a pod.',
+    list: 'Previews in this window',
+    listHint: 'Kept on this page only.',
+    colTime: 'Time',
+    noRows: 'No previews yet',
+    noRowsText: 'Each preview that you send to the pods is listed here.',
+  },
 }
 
 export const T = pick(en, ptBR)
