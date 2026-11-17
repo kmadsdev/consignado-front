@@ -22,8 +22,13 @@ certificates for both hosts, network-level DDoS protection and WAF rules, at no 
 
 - It routes, caches static files, rewrites application routes to `index.html`, and sets the
   security headers (HSTS, CSP, no framing, no content sniffing).
-- It forwards only the headers that the gateway needs, and adds `X-Edge-Key`. The gateway
-  refuses a request without that key, so the function cannot be called around the edge.
+- On `/api/*` it accepts only `GET`, `POST`, `PUT` and `PATCH`, and refuses a declared body
+  above 64 KB (413).
+- It forwards only the headers that the gateway needs (`accept`, `accept-language`,
+  `authorization`, `content-type`, `idempotency-key`, `x-fingerprint`), and adds `X-Edge-Key`,
+  `CF-Connecting-IP` and `X-Forwarded-Host`. The gateway refuses a request without the key, so
+  the function cannot be called around the edge. The gateway function app also accepts only the
+  Cloudflare address ranges.
 - It takes no access decision and holds no user data. Tokens, quotas and limits are checked
   by the gateway.
 
@@ -38,3 +43,23 @@ az keyvault secret show --vault-name kv-consig-km01 -n edge-key --query value -o
 ```
 
 The Worker is deployed by hand: a Cloudflare token is not stored in this repository.
+
+## Rotate the edge key
+
+The key is made by Terraform in `consignado-api/infra/terraform` (`random_password.edge_key`)
+and stored in Key Vault as `edge-key`. Make a new value there, then run the `wrangler secret put`
+line above right after it. The gateway caches the key for 5 minutes, so the API can answer 403
+for up to 5 minutes. Do it at a quiet time. Not executed on the live platform at the time of writing.
+
+## Rules in the Cloudflare zone
+
+These are zone settings, made in the Cloudflare dashboard, not in this repository. They apply
+to the two host names only.
+
+| Rule | Effect |
+|---|---|
+| Rate limit | 40 requests per 10 seconds per IP address on `/api/`. |
+| Method allow-list | Other methods are blocked before the Worker runs. A `DELETE` gets the Cloudflare block page (HTML, not JSON). |
+| Managed challenge | Non-browser clients get a challenge on `/api/contact` and `/api/me/profile`. |
+
+The free plan has custom rules and rate limits, not the managed WAF rule sets.
