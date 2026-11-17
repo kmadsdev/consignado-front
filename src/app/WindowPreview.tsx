@@ -14,13 +14,12 @@ import Table from '@cloudscape-design/components/table'
 import { useState } from 'react'
 import { ApiError, previewSimulation, type PreviewResult } from '../api/client'
 import { LOCALE } from '../i18n/lang.ts'
-import type { TraceRecord } from '../shell/context'
 import { Mono } from './common'
-import { brl, duration } from './format'
-import { RequestInspector } from './RequestInspector'
+import { brl, duration, percent } from './format'
+import { RequestFlow, type FlowRecord } from './RequestFlow'
 import { T } from './strings'
 
-interface Row { id: string; at: number; principal: number; termMonths: number; installment: number; ms: number }
+interface Row { id: string; at: number; principal: number; termMonths: number; ratePercent: number; income: number; installment?: number; error?: string; ms: number }
 const TIME = new Intl.DateTimeFormat(LOCALE, { timeStyle: 'medium', timeZone: 'America/Sao_Paulo' })
 const toNumber = (text: string) => Number(text.replace(',', '.'))
 
@@ -34,7 +33,7 @@ export function WindowPreview({ ready }: { ready: boolean }) {
   const [touched, setTouched] = useState(false)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<PreviewResult | null>(null)
-  const [record, setRecord] = useState<TraceRecord | null>(null)
+  const [record, setRecord] = useState<FlowRecord | null>(null)
   const [failure, setFailure] = useState('')
   const [ended, setEnded] = useState(false)
   const [rows, setRows] = useState<Row[]>([])
@@ -53,15 +52,24 @@ export function WindowPreview({ ready }: { ready: boolean }) {
     setTouched(true)
     if (!valid || busy || off) return
     setBusy(true); setFailure('')
+    const started = performance.now()
+    const row = { id: `${Date.now()}`, at: Date.now(), principal: p, termMonths: m, ratePercent: r, income: i }
     try {
       const res = await previewSimulation({ principal: p, termMonths: m, monthlyInterestRate: r / 100, monthlyIncome: i }, 'aks')
+      const browserMs = Math.round(performance.now() - started)
       setResult(res.data)
-      setRecord({ label: res.label, trace: res.trace, ok: true, at: Date.now() })
-      setRows((list) => [{ id: `${Date.now()}`, at: Date.now(), principal: p, termMonths: m, installment: res.data.installment, ms: res.trace.totalMs }, ...list].slice(0, 20))
+      setRecord({ label: res.label, trace: res.trace, ok: true, at: Date.now(), browserMs, status: 200 })
+      setRows((list) => [{ ...row, installment: res.data.installment, ms: browserMs }, ...list].slice(0, 20))
     } catch (err) {
+      const browserMs = Math.round(performance.now() - started)
       if (err instanceof ApiError && err.status === 403 && err.code === 'no-session') { setEnded(true); setResult(null); return }
-      setFailure(err instanceof Error ? err.message : T.common.failed)
-      if (err instanceof ApiError && err.trace) setRecord({ label: err.label ?? '', trace: err.trace, ok: false, message: err.message, at: Date.now() })
+      const message = err instanceof Error ? err.message : T.common.failed
+      setFailure(message)
+      setResult(null)
+      if (err instanceof ApiError) {
+        setRows((list) => [{ ...row, error: T.flow.httpError(err.status, T.flow.httpWords(err.status), err.code), ms: browserMs }, ...list].slice(0, 20))
+        if (err.trace) setRecord({ label: err.label ?? '', trace: err.trace, ok: false, message, at: Date.now(), browserMs, status: err.status, code: err.code })
+      }
     } finally {
       setBusy(false)
     }
@@ -72,7 +80,7 @@ export function WindowPreview({ ready }: { ready: boolean }) {
       <SpaceBetween size="l">
         {!ready && <StatusIndicator type="pending">{L.waiting}</StatusIndicator>}
         {ended && <Alert type="info" header={L.endedTitle}>{L.endedText}</Alert>}
-        <Grid gridDefinition={[{ colspan: { default: 12, m: 5 } }, { colspan: { default: 12, m: 7 } }]}>
+        <Grid gridDefinition={[{ colspan: { default: 12, s: 5 } }, { colspan: { default: 12, s: 7 } }]}>
           <form onSubmit={(e) => { e.preventDefault(); void submit() }} noValidate>
             <SpaceBetween size="m">
               <ColumnLayout columns={2}>
@@ -116,9 +124,8 @@ export function WindowPreview({ ready }: { ready: boolean }) {
             trackBy="id"
             columnDefinitions={[
               { id: 'at', header: L.colTime, cell: (s) => <Mono>{TIME.format(s.at)}</Mono>, isRowHeader: true },
-              { id: 'principal', header: T.guest.principal, cell: (s) => <Mono>{brl(s.principal)}</Mono> },
-              { id: 'term', header: T.col.term, cell: (s) => T.common.months(s.termMonths) },
-              { id: 'installment', header: T.guest.installment, cell: (s) => <Mono>{brl(s.installment)}</Mono> },
+              { id: 'inputs', header: T.flow.colInputs, cell: (s) => T.flow.inputs(brl(s.principal), s.termMonths, percent(s.ratePercent / 100), brl(s.income)) },
+              { id: 'result', header: T.flow.colResult, cell: (s) => s.installment !== undefined ? <Mono>{brl(s.installment)}</Mono> : <StatusIndicator type="error">{s.error}</StatusIndicator> },
               { id: 'ms', header: T.guest.colTime, cell: (s) => <Mono>{duration(s.ms)}</Mono> },
             ]}
             empty={
@@ -129,12 +136,10 @@ export function WindowPreview({ ready }: { ready: boolean }) {
             }
           />
         </Grid>
-        {ready && !ended && (
+        {!ended && (
           <SpaceBetween size="s">
-            <Header variant="h3" description={L.requestHint}>{T.guest.request}</Header>
-            {record
-              ? <RequestInspector record={record} diagramHeight={520} stacked />
-              : <Box color="text-body-secondary">{L.requestEmpty}</Box>}
+            <Header variant="h3" description={record ? L.requestHint : L.requestEmpty}>{T.guest.request}</Header>
+            <RequestFlow host="aks" record={record} />
           </SpaceBetween>
         )}
       </SpaceBetween>

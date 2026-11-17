@@ -12,7 +12,7 @@ import Table from '@cloudscape-design/components/table'
 import Textarea from '@cloudscape-design/components/textarea'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getSession, listMySessions, sendContact, startSession, type SessionView } from '../api/client'
+import { WINDOW_MINUTES, getSession, listMySessions, sendContact, startSession, type SessionView } from '../api/client'
 import { useAuth } from '../auth'
 import { MOCK, POLL } from '../config'
 import { useShell } from '../shell/context'
@@ -67,6 +67,7 @@ function Aks() {
   const [active, setActive] = useState<SessionView | null>(null)
   const [starting, setStarting] = useState(false)
   const activeId = me?.activeSessionId
+  const minutes = me?.windowMinutes ?? WINDOW_MINUTES
 
   useEffect(() => {
     let alive = true
@@ -120,7 +121,7 @@ function Aks() {
     action = (
       <SpaceBetween size="s">
         <Box>
-          <Button variant="primary" iconName="caret-right-filled" loading={starting} onClick={() => void start()}>{T.aks.start}</Button>
+          <Button variant="primary" iconName="caret-right-filled" loading={starting} onClick={() => void start()}>{T.aks.start(minutes)}</Button>
         </Box>
         <Box color="text-body-secondary" fontSize="body-s">{T.aks.startHint(left)}</Box>
       </SpaceBetween>
@@ -128,7 +129,7 @@ function Aks() {
   }
 
   return (
-    <ContentLayout header={<Header variant="h1" description={T.aks.description}>{T.aks.title}</Header>}>
+    <ContentLayout header={<Header variant="h1" description={T.aks.description(minutes)}>{T.aks.title}</Header>}>
       <SpaceBetween size="l">
         <Container header={<Header variant="h2" description={T.aks.howHint}>{T.aks.how}</Header>}>
           <KeyValuePairs
@@ -136,7 +137,7 @@ function Aks() {
             items={[
               { label: T.aks.whatStarts, value: T.aks.whatStartsText },
               { label: T.aks.coldStart, value: T.aks.coldStartText },
-              { label: T.aks.window, value: T.aks.windowText },
+              { label: T.aks.window, value: T.aks.windowText(minutes) },
               { label: T.aks.cost, value: T.aks.costText },
             ]}
           />
@@ -157,7 +158,7 @@ function Aks() {
           </SpaceBetween>
         </Container>
         <Table
-          header={<Header variant="h2" counter={sessions ? `(${sessions.length})` : undefined} description={T.aks.pastHint}>{T.aks.past}</Header>}
+          header={<Header variant="h2" counter={me ? `(${me.windowsUsed})` : sessions ? `(${sessions.length})` : undefined} description={T.aks.pastHint}>{T.aks.past}</Header>}
           loading={!sessions}
           loadingText={T.common.loading}
           items={sessions ?? []}

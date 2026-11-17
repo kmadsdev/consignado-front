@@ -1,6 +1,7 @@
 // Every user-visible string of the admin area, in English. The pt-BR table is in strings.pt.ts.
 import { pick } from '../i18n/lang.ts'
 import { ptBR } from './strings.pt.ts'
+import { windowCostText } from '../app/cost.ts'
 
 export const en = {
   title: 'Admin',
@@ -37,7 +38,7 @@ export const en = {
     noProfile: 'Profile not complete',
     linkedin: 'Profile',
     status: { active: 'Active', held: 'Held', blocked: 'Blocked' } as Record<string, string>,
-    flags: { 'same-device': 'same device', 'same-ip': 'same IP', 'disposable-email': 'disposable email' } as Record<string, string>,
+    flags: { 'same-device': 'same device', 'same-ip': 'same IP', 'disposable-email': 'disposable email', 'same-mailbox': 'same mailbox' } as Record<string, string>,
     roleAdmin: 'admin',
     done: (name: string, what: string) => `${name}: ${what}.`,
     doneWhat: { approve: 'approved', hold: 'put on hold', block: 'blocked', 'grant-windows': 'got more windows' } as Record<string, string>,
@@ -45,7 +46,7 @@ export const en = {
     grantTitle: 'Grant windows',
     grantText: (name: string, used: number, max: number) => `${name} used ${used} of ${max} windows.`,
     grantLabel: 'Windows to add',
-    grantHint: 'From 1 to 10. Each window can cost about US$ 0.03 to 0.05.',
+    grantHint: `From 1 to 10. About US$ ${windowCostText('.')} per window.`,
     grantErr: 'Enter a whole number from 1 to 10.',
     grantSubmit: 'Grant',
     blockTitle: 'Block this account?',
@@ -83,7 +84,7 @@ export const en = {
     pauseText: 'Recruiters will see "The engine is paused" and cannot start a window. The serverless host is not affected.',
     pauseConfirm: 'Pause',
     resumeTitle: 'Resume the engine?',
-    resumeText: 'Recruiters will be able to start windows again. Each window costs about US$ 0.03 to 0.05.',
+    resumeText: `Recruiters will be able to start windows again. About US$ ${windowCostText('.')} per window.`,
     resumeConfirm: 'Resume',
     stop: 'Stop the engine now',
     stopReason: 'The engine is not running.',
@@ -117,6 +118,36 @@ export const en = {
     colMessage: 'Message',
     colCreated: 'Received',
     kind: { contact: 'Contact', 'more-windows': 'More windows' } as Record<string, string>,
+  },
+  windowSettings: {
+    action: 'Window settings',
+    title: 'Window settings',
+    text: (name: string, used: number) => `${name} used ${used} ${used === 1 ? 'window' : 'windows'} so far. A change does not alter a window that is already open.`,
+    windows: 'Access windows',
+    windowsHint: (used: number) => `From 0 to 50. Used: ${used}.`,
+    windowsErr: 'Enter a whole number from 0 to 50.',
+    minutes: 'Minutes per window',
+    minutesHint: `From 5 to 60. About US$ ${windowCostText('.')} per window of 15 minutes.`,
+    minutesErr: 'Enter a whole number from 5 to 60.',
+    save: 'Save',
+    done: (name: string) => `Window settings of ${name} saved.`,
+    colWindows: (used: number, max: number) => `${used} / ${max} windows`,
+    colMinutes: 'Window length',
+    minutesValue: (n: number) => `${n} min`,
+  },
+  extra: {
+    deleteAction: 'Delete user data',
+    deleteTitle: 'Delete the data of this user?',
+    deleteText: (name: string) => `This deletes the account row of ${name}, all of its access windows and its contact requests. An open window ends. The audit log keeps only a hashed id. It cannot be undone.`,
+    deleteEntra: 'The Microsoft Entra ID account is not deleted here: remove it in the Entra admin center.',
+    deleteConfirm: 'Delete user data',
+    deleted: (name: string) => `The data of ${name} is deleted. Remove the account in the Entra admin center too.`,
+    selfDelete: 'You cannot delete your own account.',
+    notAvailable: 'This action is not available yet on the gateway.',
+    tableFailed: 'This table did not load',
+    colAccount: 'Account',
+    openUser: 'Open the user',
+    guest: 'guest',
   },
 }
 

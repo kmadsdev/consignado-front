@@ -3,10 +3,11 @@
 // The real client replaces this file; the function signatures in client.ts stay.
 import type {
   AdminState, AdminUser, Agreement, ContactRequest, Contract, ContractStatus, Customer, Engine,
-  EngineState, HostKind, LifecycleEvent, Margin, Me, Profile, RequestTrace, Session, Simulation,
+  EngineState, HostKind, LifecycleEvent, Margin, Me, Metric, PlatformStatus, Profile, RequestTrace, ServiceStatus, Session, Simulation,
 } from './types'
 import { ApiError } from './errors'
 import { cpfForApi, formatCpf, maskCpf, type PageInfo } from './map'
+import { WINDOW_COST_USD } from '../app/cost.ts'
 
 // ---- types that the contract does not have yet (listed in the report) ---------
 export type PersonaId = 'guest' | 'recruiter' | 'recruiter-new' | 'recruiter-held' | 'recruiter-spent' | 'admin'
@@ -54,16 +55,18 @@ const START_PLAN: Array<[string, number, number, number, string]> = [
   ['identity', 1.5, 2.1, 84, 'Entra ID token is valid'],
   ['quota', 2.1, 2.6, 27, 'access window granted, budget ok'],
   ['keyvault', 2.6, 3.2, 141, 'gateway secrets read from Key Vault'],
-  ['arm-start', 3.2, 6, 14_200, 'Resource Manager accepted "start cluster"'],
-  ['control-plane', 6, 14, 88_400, 'Kubernetes API server answers'],
-  ['node', 14, 24, 112_300, 'node aks-system-31807245-vmss000000 Ready'],
-  ['image-pull', 24, 28, 22_100, 'pulled consignado-api:1.4.2 from the registry'],
-  ['secrets-mount', 28, 29.5, 4_050, 'CSI driver mounted the database password'],
-  ['container-start', 29.5, 34, 17_300, 'Spring Boot started in 16.8 s'],
-  ['database', 34, 35.5, 3_200, 'Flyway: schema is up to date, pool of 5 connections'],
-  ['readiness', 35.5, 37.5, 6_100, 'pod consignado-api-7d9f8c-x2kqp Ready (2/2)'],
-  ['load-balancer', 37.5, 39, 9_300, 'internal Load Balancer probe is healthy'],
-  ['first-response', 39, 40, 312, 'GET /api/v1/agreements answered 200'],
+  // Measured on 2026-11-17 (stopped cluster to first answer, 7 min 13 s): control plane 4 min 26 s,
+  // node 2 min 13 s, Spring Boot and database 26 s, load balancer 8 s. The 40 s play keeps these proportions.
+  ['arm-start', 3.2, 4.4, 12_400, 'Resource Manager accepted "start cluster"'],
+  ['control-plane', 4.4, 26.4, 253_600, 'Kubernetes API server answers'],
+  ['node', 26.4, 34.6, 111_900, 'node aks-system-31807245-vmss000000 Ready'],
+  ['image-pull', 34.6, 35.9, 17_800, 'pulled consignado-api:1.4.2 from the registry'],
+  ['secrets-mount', 35.9, 36.3, 3_300, 'CSI driver mounted the database password'],
+  ['container-start', 36.3, 37.6, 17_400, 'Spring Boot started in 16.9 s'],
+  ['database', 37.6, 38, 2_900, 'Flyway: schema is up to date, pool of 5 connections'],
+  ['readiness', 38, 38.6, 5_700, 'pod consignado-api-7d9f8c-x2kqp Ready (2/2)'],
+  ['load-balancer', 38.6, 39.6, 7_700, 'internal Load Balancer probe is healthy'],
+  ['first-response', 39.6, 40, 300, 'GET /api/v1/agreements answered 200'],
 ]
 const REAL_COLD_START_MS = START_PLAN.reduce((sum, p) => sum + p[3], 0)
 
@@ -105,7 +108,7 @@ export function installmentOf(principal: number, monthlyRate: number, months: nu
 }
 
 // ---- state ----------------------------------------------------------------------
-interface SessionRec { id: string; userId: string; requestedAt: number; endedAt?: number; requestCount: number; coldStartMs: number }
+interface SessionRec { id: string; userId: string; requestedAt: number; endedAt?: number; requestCount: number; coldStartMs: number; /** The owner's window length when it started. Old records: WINDOW_MS. */ windowMs?: number }
 interface Db {
   v: number
   seq: number
@@ -204,7 +207,7 @@ function seed(): Db {
     const early = r() < 0.3
     sessions.push({
       id: Math.floor(r() * 0xffffffff).toString(16).padStart(8, '0') + Math.floor(r() * 0xff).toString(16).padStart(2, '0'),
-      userId, requestedAt, requestCount: Math.floor(4 + r() * 38), coldStartMs: Math.round(245_000 + r() * 105_000),
+      userId, requestedAt, requestCount: Math.floor(4 + r() * 38), coldStartMs: Math.round(415_000 + r() * 40_000),
       endedAt: requestedAt + COMPRESSED_START_MS + (early ? Math.floor(WINDOW_MS * (0.3 + r() * 0.5)) : WINDOW_MS),
     })
   })
@@ -265,7 +268,7 @@ const nextId = (prefix: string) => `${prefix}-${String(++db.seq + 9000)}`
 
 // ---- sessions and engine ---------------------------------------------------------
 function sessionEnd(s: SessionRec): number {
-  return s.endedAt ?? s.requestedAt + COMPRESSED_START_MS + WINDOW_MS
+  return s.endedAt ?? s.requestedAt + COMPRESSED_START_MS + (s.windowMs ?? WINDOW_MS)
 }
 function viewSession(s: SessionRec, now = Date.now()): SessionView {
   const elapsed = (now - s.requestedAt) / 1000
@@ -281,9 +284,9 @@ function viewSession(s: SessionRec, now = Date.now()): SessionView {
     if (to <= limit) events.push({ ts: iso(s.requestedAt + to * 1000), stage, status: 'done', detail, ms: realMs })
   }
   const ready = limit >= COMPRESSED_START_MS / 1000
-  if (ready) events.push({ ts: iso(readyAtMs), stage: 'window-open', status: ended ? 'done' : 'active', detail: `${WINDOW_MINUTES}-minute window`, ms: ended ? endMs - readyAtMs : undefined })
+  if (ready) events.push({ ts: iso(readyAtMs), stage: 'window-open', status: ended ? 'done' : 'active', detail: `${Math.round((s.windowMs ?? WINDOW_MS) / 60_000)}-minute window`, ms: ended ? endMs - readyAtMs : undefined })
   if (ended) {
-    events.push({ ts: iso(endMs), stage: 'window-close', status: 'done', detail: s.endedAt && s.endedAt < readyAtMs + WINDOW_MS ? 'window ended early' : 'countdown reached zero' })
+    events.push({ ts: iso(endMs), stage: 'window-close', status: 'done', detail: s.endedAt && s.endedAt < readyAtMs + (s.windowMs ?? WINDOW_MS) ? 'window ended early' : 'countdown reached zero' })
     const stopped = now >= endMs + STOP_MS
     events.push({ ts: iso(endMs), stage: 'cluster-stop', status: 'active', detail: 'Resource Manager accepted "stop cluster"' })
     if (stopped) events.push({ ts: iso(endMs + STOP_MS), stage: 'cluster-stop', status: 'done', detail: 'cluster stopped, compute cost is zero', ms: 96_000 })
@@ -292,7 +295,7 @@ function viewSession(s: SessionRec, now = Date.now()): SessionView {
     id: s.id, userId: s.userId, requestedAt: iso(s.requestedAt),
     state: ended ? 'ended' : ready ? 'ready' : 'starting',
     readyAt: ready && !endedDuringStart ? iso(readyAtMs) : undefined,
-    expiresAt: ready && !endedDuringStart ? iso(readyAtMs + WINDOW_MS) : undefined,
+    expiresAt: ready && !endedDuringStart ? iso(readyAtMs + (s.windowMs ?? WINDOW_MS)) : undefined,
     events, requestCount: s.requestCount, coldStartMs: ready ? s.coldStartMs : undefined,
     endedAt: ended ? iso(endMs) : undefined, compressed: true,
   }
@@ -312,13 +315,13 @@ function engineNow(now = Date.now()): Engine {
     else if (db.paused) { state = 'paused' }
   }
   if (db.paused && state === 'stopped') state = 'paused'
-  return { state, since: iso(since), activeSessions: live.length, pausedReason: db.paused ? db.pausedReason ?? 'admin' : undefined }
+  return { state, since: iso(since), activeSessions: live.length, pausedReason: db.paused ? db.pausedReason ?? 'admin' : undefined, paused: db.paused && state !== 'paused' ? true : undefined }
 }
 function toMe(u: AdminUser): Me {
   const active = liveSessions().find((s) => s.userId === u.id)
   return {
     id: u.id, email: u.email, name: u.name, role: u.role, profileComplete: u.profileComplete, status: u.status,
-    windowsUsed: u.windowsUsed, windowsMax: u.windowsMax, activeSessionId: active?.id,
+    windowsUsed: u.windowsUsed, windowsMax: u.windowsMax, windowMinutes: u.windowMinutes ?? WINDOW_MINUTES, activeSessionId: active?.id,
   }
 }
 
@@ -492,10 +495,10 @@ export async function startSession(): Promise<Session> {
   if (live) return viewSession(live)
   if (u.windowsUsed >= u.windowsMax) throw new ApiError(429, 'You have no access window left.')
   const id = Array.from({ length: 10 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
-  const rec: SessionRec = { id, userId: u.id, requestedAt: Date.now(), requestCount: 0, coldStartMs: REAL_COLD_START_MS }
+  const rec: SessionRec = { id, userId: u.id, requestedAt: Date.now(), requestCount: 0, coldStartMs: REAL_COLD_START_MS, windowMs: (u.windowMinutes ?? WINDOW_MINUTES) * 60_000 }
   db.sessions.unshift(rec)
   u.windowsUsed += 1
-  db.budget.spentUsd = round2(db.budget.spentUsd + 0.11)
+  db.budget.spentUsd = round2(db.budget.spentUsd + WINDOW_COST_USD)
   persist()
   return viewSession(rec)
 }
@@ -523,7 +526,7 @@ export async function listMySessions(): Promise<SessionView[]> {
 }
 export async function sendContact(input: ContactInput): Promise<ContactRequest> {
   await sleep(rnd(250, 480))
-  const req: ContactRequest = { id: `req-${String(++db.seq).padStart(4, '0')}`, kind: input.kind, name: input.name, email: input.email, message: input.message, createdAt: iso(Date.now()) }
+  const req: ContactRequest = { id: `req-${String(++db.seq).padStart(4, '0')}`, kind: input.kind, name: input.name, email: input.email, message: input.message, createdAt: iso(Date.now()), userId: currentUser()?.id ?? null }
   db.contacts.unshift(req)
   persist()
   return req
@@ -620,7 +623,7 @@ export async function previewSimulation(input: PreviewInput, host: HostKind = 'f
   const session = host === 'aks' ? openWindowOfUser() : null
   const failAt = bad ? { errorAt: 'response', errorDetail: '422: the values are out of range' } : {}
   const trace = host === 'aks' ? aksPreviewTrace(label, failAt) : buildTrace('functions', { label, database: false, ...failAt })
-  await sleep(trace.totalMs)
+  await sleep(trace.totalMs + rnd(25, 80)) // the edge and the network: the browser sees more than the gateway trace
   if (session) session.requestCount += 1
   record(trace)
   persist()
@@ -640,6 +643,72 @@ export async function getSnapshot(): Promise<ApiResult<Snapshot>> {
   return { data: { asOf: iso(Date.now() - 37 * 60_000), customers, contracts: db.contracts.filter((c) => ids.has(c.customerId)), agreements: [...db.agreements] }, trace, label }
 }
 
+// ---- live service status (GET /api/status) --------------------------------------------------
+const STATUS_REGION = 'belgiumcentral'
+const DB_REGION = 'northcentralus'
+const anyOf = <T>(list: T[]): T => list[Math.floor(Math.random() * list.length)]
+function metric(key: string, label: string, value: number | null, unit: Metric['unit'], window = 'last 5 min'): Metric { return { key, label, value, unit, window } }
+/** Numbers that move a little at each read, and one service `degraded` now and then. */
+export async function getStatus(host: HostKind): Promise<PlatformStatus> {
+  await sleep(rnd(60, 160))
+  if (host === 'aks') requireUser()
+  const now = Date.now()
+  const engine = engineNow(now).state
+  const slowOne = Math.random() < 0.15 ? anyOf(host === 'aks' ? ['keyvault', 'pods', 'database'] : ['keyvault', 'functions', 'database']) : ''
+  const lat = (id: string, min: number, max: number) => slowOne === id ? rnd(max * 3, max * 6) : rnd(min, max)
+  const st = (id: string): ServiceStatus['state'] => slowOne === id ? 'degraded' : 'up'
+  const fnReq = rnd(18, 64)
+  const services: ServiceStatus[] = [
+    { id: 'edge', name: 'consignado-edge', kind: 'Cloudflare Worker', state: 'up', detail: 'Cloudflare Worker consignado-edge; rate limit 40 requests / 10 s per IP', metrics: [], source: ['gateway'] },
+    {
+      id: 'gateway', name: 'func-consignado-gw-km01', kind: 'Azure Function (Java)', region: STATUS_REGION, state: 'up', detail: 'Resource health: Available',
+      metrics: [metric('requests', 'Requests', fnReq + rnd(10, 40), 'count'), metric('errors', 'HTTP 5xx', 0, 'count'), metric('latency-avg', 'Average response time', rnd(70, 190), 'ms')], source: ['azure-monitor', 'resource-health'],
+    },
+    { id: 'identity', name: 'Microsoft Entra ID', kind: 'Microsoft Entra ID', state: 'up', detail: `signing keys fetched ${rnd(1, 40)} min ago`, metrics: [], source: ['gateway'] },
+    {
+      id: 'keyvault', name: 'kv-consig-km01', kind: 'Key Vault', region: STATUS_REGION, state: st('keyvault'),
+      detail: slowOne === 'keyvault' ? 'Resource health: Available; latency is higher than usual' : 'Resource health: Available',
+      metrics: [metric('requests', 'Service API hits', rnd(4, 20), 'count'), metric('latency-avg', 'Service API latency', lat('keyvault', 9, 28), 'ms'), metric('availability', 'Availability', 100, '%')], source: ['azure-monitor', 'resource-health'],
+    },
+  ]
+  if (host === 'functions') {
+    services.push({
+      id: 'functions', name: 'func-consignado-api-km01', kind: 'Azure Function (custom handler)', region: STATUS_REGION, state: st('functions'),
+      detail: slowOne === 'functions' ? 'Resource health: Available; responses are slower than usual' : 'Resource health: Available',
+      metrics: [metric('requests', 'Requests', fnReq, 'count'), metric('errors', 'HTTP 5xx', 0, 'count'), metric('latency-avg', 'Average response time', lat('functions', 90, 240), 'ms'), metric('instances', 'Instances', now - db.functionsLastAt > FUNCTION_IDLE_MS ? 0 : 1, 'count', 'now')],
+      source: ['azure-monitor', 'resource-health'],
+    })
+  } else {
+    const running = engine === 'running'
+    const starting = engine === 'starting'
+    const off: ServiceStatus['state'] = starting ? 'starting' : 'stopped'
+    services.push(
+      running
+        ? { id: 'load-balancer', name: 'kubernetes-internal', kind: 'Internal load balancer', region: STATUS_REGION, state: 'up', detail: 'readiness probe from the gateway answered 200', metrics: [metric('latency-avg', 'Probe latency', rnd(3, 11), 'ms', 'now')], source: ['gateway'] }
+        : { id: 'load-balancer', name: 'kubernetes-internal', kind: 'Internal load balancer', region: STATUS_REGION, state: off, detail: starting ? 'no healthy backend yet' : 'no backend: the cluster is stopped', metrics: [], source: ['gateway'] },
+      { id: 'cluster', name: 'aks-consignado', kind: 'AKS cluster', region: STATUS_REGION, state: running ? 'up' : off, detail: running ? 'Power state Running, provisioning Succeeded' : starting ? 'Power state Starting' : 'Power state Stopped', metrics: [], source: ['arm'] },
+    )
+    if (running) {
+      const restarts = slowOne === 'pods' ? 1 : 0
+      services.push(
+        { id: 'node', name: 'aks-system-31415926-vmss000000', kind: 'Node', region: STATUS_REGION, state: 'up', detail: 'Ready, Standard_D2as_v4', metrics: [metric('cpu', 'CPU', rnd(9, 34), '%', 'now'), metric('memory', 'Memory', rnd(41, 63), '%', 'now')], source: ['kubernetes'] },
+        { id: 'pods', name: 'consignado-api', kind: 'Pods', region: STATUS_REGION, state: st('pods'), detail: `2 of 2 pods Ready, ${restarts} restart${restarts === 1 ? '' : 's'}, image 1.4.2`, metrics: [metric('replicas', 'Ready pods', 2, 'count', 'now'), metric('restarts', 'Restarts', restarts, 'count', 'now')], source: ['kubernetes'] },
+      )
+    } else {
+      services.push(
+        { id: 'node', name: 'aks-system-31415926-vmss000000', kind: 'Node', region: STATUS_REGION, state: off, detail: starting ? 'node VM is starting' : 'no node: the cluster is stopped', metrics: [], source: ['kubernetes'] },
+        { id: 'pods', name: 'consignado-api', kind: 'Pods', region: STATUS_REGION, state: off, detail: starting ? '0 of 2 pods Ready' : 'no pod: the cluster is stopped', metrics: [metric('replicas', 'Ready pods', 0, 'count', 'now')], source: ['kubernetes'] },
+      )
+    }
+  }
+  services.push({
+    id: 'database', name: 'psql-consignado-km01', kind: 'PostgreSQL flexible server', region: DB_REGION, state: st('database'),
+    detail: slowOne === 'database' ? 'Server state Ready; CPU is higher than usual' : 'Server state Ready',
+    metrics: [metric('cpu', 'CPU', slowOne === 'database' ? rnd(78, 92) : rnd(3, 14), '%'), metric('connections', 'Active connections', rnd(4, 12), 'count'), metric('memory', 'Memory', rnd(28, 40), '%')], source: ['azure-monitor', 'arm'],
+  })
+  return { asOf: iso(now - rnd(1, 9) * 1000), host, services }
+}
+
 // ---- admin ---------------------------------------------------------------------------------
 export async function adminListUsers(): Promise<AdminUser[]> {
   await sleep(rnd(120, 260)); requireAdmin()
@@ -657,11 +726,24 @@ export async function adminUserAction(id: string, action: AdminUserAction, windo
   persist()
   return { ...u }
 }
+/** Admin action `set`: access windows (0 to 50) and minutes per window (5 to 60). An open window keeps its length. */
+export async function adminSetWindowSettings(id: string, settings: { windowsMax?: number; windowMinutes?: number }): Promise<AdminUser> {
+  await sleep(rnd(180, 340)); requireAdmin()
+  const u = db.users.find((x) => x.id === id)
+  if (!u) throw new ApiError(404, 'This user does not exist.')
+  const { windowsMax, windowMinutes } = settings
+  if (windowsMax !== undefined && !(Number.isInteger(windowsMax) && windowsMax >= 0 && windowsMax <= 50)) throw new ApiError(400, 'Access windows must be a whole number from 0 to 50.')
+  if (windowMinutes !== undefined && !(Number.isInteger(windowMinutes) && windowMinutes >= 5 && windowMinutes <= 60)) throw new ApiError(400, 'Minutes per window must be a whole number from 5 to 60.')
+  if (windowsMax !== undefined) u.windowsMax = windowsMax
+  if (windowMinutes !== undefined) u.windowMinutes = windowMinutes
+  persist()
+  return { ...u, ...toMe(u) }
+}
 export async function adminListSessions(): Promise<AdminSession[]> {
   await sleep(rnd(120, 260)); requireAdmin()
   return [...db.sessions].sort((a, b) => b.requestedAt - a.requestedAt).map((s) => {
     const u = db.users.find((x) => x.id === s.userId)
-    return { ...viewSession(s), userName: u?.name || '(profile not complete)', userEmail: u?.email ?? '' }
+    return { ...viewSession(s), requests: s.requestCount, userName: u?.name || '(profile not complete)', userEmail: u?.email ?? '' }
   })
 }
 export async function adminGetState(): Promise<AdminState> {
@@ -681,6 +763,18 @@ export async function adminStopEngine(): Promise<AdminState> {
   for (const s of liveSessions(now)) s.endedAt = now
   persist()
   return { engine: engineNow(), budget: { ...db.budget, asOf: iso(Date.now() - 4 * 3_600_000) }, paused: db.paused }
+}
+/** Admin action `delete`: the user row, the windows and the contact requests. The Entra account stays. */
+export async function adminDeleteUser(id: string): Promise<void> {
+  await sleep(rnd(200, 380))
+  const admin = requireAdmin()
+  if (admin.id === id) throw new ApiError(409, 'The administrator cannot delete his own account.', undefined, 'self-delete')
+  const u = db.users.find((x) => x.id === id)
+  if (!u) throw new ApiError(404, 'This user does not exist.', undefined, 'not-found')
+  db.users = db.users.filter((x) => x.id !== id)
+  db.sessions = db.sessions.filter((s) => s.userId !== id)
+  db.contacts = db.contacts.filter((c) => c.userId !== id && c.email.toLowerCase() !== u.email.toLowerCase())
+  persist()
 }
 export async function adminListContacts(): Promise<ContactRequest[]> {
   await sleep(rnd(120, 260)); requireAdmin()

@@ -14,6 +14,7 @@ export const en = {
   paused: 'New access windows are paused now. The serverless host stays available.',
   held: 'This account waits for a check by the owner. You can read the data, but you cannot start a window yet.',
   noWindows: 'No access window is left for this account. You can ask the owner for more.',
+  dailyLimit: 'The daily limit of access windows for all visitors is reached. Try again tomorrow.',
   profileIncomplete: 'Complete your profile first. Then you can start an access window.',
   cooldown: (minutes: number) =>
     minutes > 0

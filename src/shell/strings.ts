@@ -13,6 +13,7 @@ export const en = {
       stopped: 'stopped', starting: 'starting', running: 'running', stopping: 'stopping', cooldown: 'cooldown', paused: 'paused',
     } as Record<string, string>,
     pausedBy: { budget: 'paused (budget limit)', admin: 'paused (by the owner)' } as Record<string, string>,
+    pausedNoNew: 'paused: no new windows',
   },
   metaDescription: 'Consignado Cloud: one payroll-loan API on two Azure hosts, with every request drawn live. Technical demo with synthetic data.',
   lang: { label: 'EN | PT', title: 'Language', en: 'English', pt: 'Português (Brasil)' },
