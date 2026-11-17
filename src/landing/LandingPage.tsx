@@ -3,6 +3,7 @@ import Box from '@cloudscape-design/components/box'
 import Button from '@cloudscape-design/components/button'
 import ColumnLayout from '@cloudscape-design/components/column-layout'
 import Container from '@cloudscape-design/components/container'
+import ExpandableSection from '@cloudscape-design/components/expandable-section'
 import ContentLayout from '@cloudscape-design/components/content-layout'
 import Header from '@cloudscape-design/components/header'
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs'
@@ -10,11 +11,11 @@ import Link from '@cloudscape-design/components/link'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import Table from '@cloudscape-design/components/table'
 import TextContent from '@cloudscape-design/components/text-content'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { ArchitectureDiagram, useDemoTimeline } from '../diagram'
 import { ContactForm, type ContactFormProps } from './ContactForm'
 import { NavRoot, PageFooter, Prose, useFollow } from './nav'
-import { ROUTES, landing as t, type Fact } from './strings'
+import { ROUTES, landing as t, type Fact, type Link as DocLink, type Topic } from './strings'
 
 const NARROW = '(max-width: 688px)'
 
@@ -34,6 +35,71 @@ function facts(list: Fact[]) {
     label: fact.label,
     value: fact.mono ? <Box variant="code">{fact.value}</Box> : fact.value,
   }))
+}
+
+function Links({ links }: { links: DocLink[] }) {
+  return (
+    <SpaceBetween size="m" direction="horizontal">
+      {links.map((link) => (
+        <Link key={link.href} href={link.href} external>
+          {link.text}
+        </Link>
+      ))}
+    </SpaceBetween>
+  )
+}
+
+function List({ items }: { items: string[] }) {
+  return (
+    <TextContent>
+      <ul>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </TextContent>
+  )
+}
+
+/** The second layer: one expandable block per topic, with its documents and code. */
+function Topics({ topics }: { topics: Topic[] }) {
+  return (
+    <div>
+      {topics.map((topic) => (
+        <ExpandableSection key={topic.title} variant="footer" headerText={topic.title}>
+          <Prose>
+            <SpaceBetween size="s">
+              {topic.paragraphs.slice(0, 1).map((text) => (
+                <Box variant="p" key={text}>{text}</Box>
+              ))}
+              {topic.items && <List items={topic.items} />}
+              {topic.paragraphs.slice(1).map((text) => (
+                <Box variant="p" key={text}>{text}</Box>
+              ))}
+              <Links links={topic.links} />
+            </SpaceBetween>
+          </Prose>
+        </ExpandableSection>
+      ))}
+    </div>
+  )
+}
+
+/** A section with a short first layer and the detail in expandable topics. */
+function Section({ title, description, children, topics, links }: { title: string; description: string; children?: ReactNode; topics?: Topic[]; links?: DocLink[] }) {
+  return (
+    <Container
+      fitHeight
+      header={
+        <Header variant="h2" description={description}>
+          {title}
+        </Header>
+      }
+      footer={topics ? <Topics topics={topics} /> : links ? <Links links={links} /> : undefined}
+    >
+      {children}
+    </Container>
+  )
 }
 
 function PageHeader() {
@@ -103,12 +169,7 @@ function HostCard({ host }: { host: typeof t.hosts.functions }) {
         </Header>
       }
       footer={
-        <Box fontSize="body-s">
-          <Box variant="strong" fontSize="body-s">
-            {t.hosts.tradeOffLabel}.
-          </Box>{' '}
-          {host.tradeOff}
-        </Box>
+        <Box fontSize="body-s">{host.tradeOff}</Box>
       }
     >
       <KeyValuePairs columns={narrow ? 1 : 2} items={facts(host.facts)} />
@@ -126,6 +187,9 @@ function HostsSection() {
         <HostCard host={t.hosts.functions} />
         <HostCard host={t.hosts.aks} />
       </ColumnLayout>
+      <Container>
+        <Topics topics={t.hosts.topics} />
+      </Container>
     </SpaceBetween>
   )
 }
@@ -179,55 +243,22 @@ function AccessSection() {
 
 function PathSection() {
   return (
-    <Container
-      fitHeight
-      header={
-        <Header variant="h2" description={t.path.description}>
-          {t.path.title}
-        </Header>
-      }
-      footer={
+    <Section title={t.path.title} description={t.path.description} topics={t.path.topics}>
+      <SpaceBetween size="s">
+        <TextContent>
+          <ol>
+            {t.path.steps.map((step) => (
+              <li key={step.service}>
+                <strong>{step.service}</strong> {step.text}
+              </li>
+            ))}
+          </ol>
+        </TextContent>
         <Box fontSize="body-s" color="text-body-secondary">
-          <Box variant="strong" fontSize="body-s" color="inherit">
-            {t.path.pageLoadLabel}.
-          </Box>{' '}
-          {t.path.pageLoad} {t.path.edgeNote}
+          {t.path.pageLoad}
         </Box>
-      }
-    >
-      <TextContent>
-        <ol>
-          {t.path.steps.map((step) => (
-            <li key={step.service}>
-              <strong>{step.service}</strong> {step.text}
-            </li>
-          ))}
-        </ol>
-      </TextContent>
-    </Container>
-  )
-}
-
-function SecuritySection() {
-  return (
-    <Container
-      fitHeight
-      header={
-        <Header variant="h2" description={t.security.description}>
-          {t.security.title}
-        </Header>
-      }
-    >
-      <TextContent>
-        <ul>
-          {t.security.items.map((item) => (
-            <li key={item.lead}>
-              <strong>{item.lead}</strong> {item.text}
-            </li>
-          ))}
-        </ul>
-      </TextContent>
-    </Container>
+      </SpaceBetween>
+    </Section>
   )
 }
 
@@ -258,12 +289,33 @@ export function LandingPage({ onContactSubmit }: LandingPageProps) {
       <ContentLayout defaultPadding maxContentWidth={1280} header={<PageHeader />}>
         <SpaceBetween size="xl">
           <DiagramSection />
+          <Section title={t.product.title} description={t.product.description} topics={t.product.topics}>
+            <Prose>
+              <Box variant="p">{t.product.intro}</Box>
+            </Prose>
+          </Section>
           <HostsSection />
           <AccessSection />
           <ColumnLayout columns={2}>
             <PathSection />
-            <SecuritySection />
+            <Section title={t.identity.title} description={t.identity.description} topics={t.identity.topics}>
+              <List items={t.identity.items} />
+            </Section>
           </ColumnLayout>
+          <ColumnLayout columns={2}>
+            <Section title={t.data.title} description={t.data.description}>
+              <List items={t.data.items} />
+            </Section>
+            <Section title={t.delivery.title} description={t.delivery.description} links={t.delivery.links}>
+              <List items={t.delivery.items} />
+            </Section>
+          </ColumnLayout>
+          <Section title={t.decisions.title} description={t.decisions.description}>
+            <Topics topics={t.decisions.topics} />
+          </Section>
+          <Section title={t.limits.title} description={t.limits.description} links={t.limits.links}>
+            <List items={t.limits.items} />
+          </Section>
           <StackSection />
           <div id="contact">
             <Container
