@@ -21,6 +21,8 @@ export interface Engine {
   since: string
   activeSessions: number
   pausedReason?: 'budget' | 'admin'
+  /** True when the engine is paused while a window is still open (state stays `running`): no new windows. */
+  paused?: boolean
 }
 
 /** A 15-minute access window to the AKS host. `id` is the <clusterid> of the URL. */
@@ -32,6 +34,8 @@ export interface Session {
   readyAt?: string // the countdown starts here
   expiresAt?: string // readyAt + 15 min
   events: LifecycleEvent[]
+  /** Proxied requests of this window, counted by the gateway. Old gateways do not send it. */
+  requests?: number
 }
 
 export interface Me {
@@ -72,9 +76,9 @@ export type ContractStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'S
 export interface Contract { id: string; customerId: string; simulationId: string; status: ContractStatus; principal: number; termMonths: number; installment: number; createdAt: string }
 
 // ---- admin ------------------------------------------------------------------
-export interface AdminUser extends Me { company: string; linkedin: string; createdAt: string; lastSeenAt: string; flags: Array<'same-device' | 'same-ip' | 'disposable-email'> }
+export interface AdminUser extends Me { company: string; linkedin: string; createdAt: string; lastSeenAt: string; flags: Array<'same-device' | 'same-ip' | 'disposable-email' | 'same-mailbox'> }
 export interface AdminState { engine: Engine; budget: { limitUsd: number; spentUsd: number; asOf: string }; paused: boolean }
-export interface ContactRequest { id: string; kind: 'contact' | 'more-windows'; name: string; email: string; message: string; createdAt: string }
+export interface ContactRequest { id: string; kind: 'contact' | 'more-windows'; name: string; email: string; message: string; createdAt: string; /** Entra object id of a signed-in sender; null for a guest. */ userId?: string | null }
 
 // ---- live service status (GET /api/status?host=functions|aks, CONTRACT-ADDENDUM.md) ----------
 export interface PlatformStatus {

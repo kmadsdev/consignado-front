@@ -51,6 +51,7 @@ function toError(status: number, body: ApiProblem | null, trace: RequestTrace | 
     else if (code === 'held') message = E.held
     else if (code === 'blocked') message = E.blocked
     else if (code === 'no-windows') message = E.noWindows
+    else if (code === 'daily-limit') message = E.dailyLimit
     else if (code === 'profile-incomplete') message = E.profileIncomplete
     else if (code === 'cooldown') message = E.cooldown(retryAfter > 0 ? Math.ceil(retryAfter / 60) : 0)
     else message = text || E.conflict
@@ -168,6 +169,10 @@ export async function getSession(id: string): Promise<SessionView> {
   rememberSession(s.id)
   return viewSession(s)
 }
+/** POST /api/sessions/{id}/end: the owner ends the window early. The window is not given back. */
+export async function endSession(id: string): Promise<SessionView> {
+  return viewSession((await request<Session>(`/sessions/${encodeURIComponent(id)}/end`, { method: 'POST', body: {} })).data)
+}
 export async function listMySessions(): Promise<SessionView[]> {
   const me = await getMe().catch(() => null)
   const ids = rememberedSessions()
@@ -262,6 +267,10 @@ export async function adminListUsers(): Promise<AdminUser[]> {
 export async function adminUserAction(id: string, action: AdminUserAction, windows?: number): Promise<AdminUser> {
   const body = action === 'grant-windows' ? { action: 'grant', windows: Math.max(1, Math.min(20, Math.round(windows ?? 1))) } : { action }
   return (await request<AdminUser>(`/admin/users/${encodeURIComponent(id)}`, { method: 'POST', body })).data
+}
+/** Admin action `delete`: the user row, the windows and the contact requests. The Entra account stays. */
+export async function adminDeleteUser(id: string): Promise<void> {
+  await request<unknown>(`/admin/users/${encodeURIComponent(id)}`, { method: 'POST', body: { action: 'delete' } })
 }
 /** Admin action `set`: access windows (0 to 50) and minutes per window (5 to 60). */
 export async function adminSetWindowSettings(id: string, settings: { windowsMax?: number; windowMinutes?: number }): Promise<AdminUser> {

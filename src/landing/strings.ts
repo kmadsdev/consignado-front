@@ -87,7 +87,7 @@ const landingEn = {
       facts: [
         { label: 'Availability', value: 'Started for a 15-minute access window' },
         { label: 'Who can use it', value: 'Signed-in users, 3 windows each' },
-        { label: 'Cold start', value: 'About 4 to 6 min', mono: true },
+        { label: 'Cold start', value: 'About 7 min (measured: 7 min 13 s)', mono: true },
         { label: 'Start progress', value: 'Shown stage by stage' },
         { label: 'When the window ends', value: 'The cluster is stopped' },
         { label: 'Network', value: 'Internal load balancer, 2 pods' },

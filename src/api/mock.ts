@@ -7,6 +7,7 @@ import type {
 } from './types'
 import { ApiError } from './errors'
 import { cpfForApi, formatCpf, maskCpf, type PageInfo } from './map'
+import { WINDOW_COST_USD } from '../app/cost.ts'
 
 // ---- types that the contract does not have yet (listed in the report) ---------
 export type PersonaId = 'guest' | 'recruiter' | 'recruiter-new' | 'recruiter-held' | 'recruiter-spent' | 'admin'
@@ -54,16 +55,18 @@ const START_PLAN: Array<[string, number, number, number, string]> = [
   ['identity', 1.5, 2.1, 84, 'Entra ID token is valid'],
   ['quota', 2.1, 2.6, 27, 'access window granted, budget ok'],
   ['keyvault', 2.6, 3.2, 141, 'gateway secrets read from Key Vault'],
-  ['arm-start', 3.2, 6, 14_200, 'Resource Manager accepted "start cluster"'],
-  ['control-plane', 6, 14, 88_400, 'Kubernetes API server answers'],
-  ['node', 14, 24, 112_300, 'node aks-system-31807245-vmss000000 Ready'],
-  ['image-pull', 24, 28, 22_100, 'pulled consignado-api:1.4.2 from the registry'],
-  ['secrets-mount', 28, 29.5, 4_050, 'CSI driver mounted the database password'],
-  ['container-start', 29.5, 34, 17_300, 'Spring Boot started in 16.8 s'],
-  ['database', 34, 35.5, 3_200, 'Flyway: schema is up to date, pool of 5 connections'],
-  ['readiness', 35.5, 37.5, 6_100, 'pod consignado-api-7d9f8c-x2kqp Ready (2/2)'],
-  ['load-balancer', 37.5, 39, 9_300, 'internal Load Balancer probe is healthy'],
-  ['first-response', 39, 40, 312, 'GET /api/v1/agreements answered 200'],
+  // Measured on 2026-11-17 (stopped cluster to first answer, 7 min 13 s): control plane 4 min 26 s,
+  // node 2 min 13 s, Spring Boot and database 26 s, load balancer 8 s. The 40 s play keeps these proportions.
+  ['arm-start', 3.2, 4.4, 12_400, 'Resource Manager accepted "start cluster"'],
+  ['control-plane', 4.4, 26.4, 253_600, 'Kubernetes API server answers'],
+  ['node', 26.4, 34.6, 111_900, 'node aks-system-31807245-vmss000000 Ready'],
+  ['image-pull', 34.6, 35.9, 17_800, 'pulled consignado-api:1.4.2 from the registry'],
+  ['secrets-mount', 35.9, 36.3, 3_300, 'CSI driver mounted the database password'],
+  ['container-start', 36.3, 37.6, 17_400, 'Spring Boot started in 16.9 s'],
+  ['database', 37.6, 38, 2_900, 'Flyway: schema is up to date, pool of 5 connections'],
+  ['readiness', 38, 38.6, 5_700, 'pod consignado-api-7d9f8c-x2kqp Ready (2/2)'],
+  ['load-balancer', 38.6, 39.6, 7_700, 'internal Load Balancer probe is healthy'],
+  ['first-response', 39.6, 40, 300, 'GET /api/v1/agreements answered 200'],
 ]
 const REAL_COLD_START_MS = START_PLAN.reduce((sum, p) => sum + p[3], 0)
 
@@ -204,7 +207,7 @@ function seed(): Db {
     const early = r() < 0.3
     sessions.push({
       id: Math.floor(r() * 0xffffffff).toString(16).padStart(8, '0') + Math.floor(r() * 0xff).toString(16).padStart(2, '0'),
-      userId, requestedAt, requestCount: Math.floor(4 + r() * 38), coldStartMs: Math.round(245_000 + r() * 105_000),
+      userId, requestedAt, requestCount: Math.floor(4 + r() * 38), coldStartMs: Math.round(415_000 + r() * 40_000),
       endedAt: requestedAt + COMPRESSED_START_MS + (early ? Math.floor(WINDOW_MS * (0.3 + r() * 0.5)) : WINDOW_MS),
     })
   })
@@ -312,7 +315,7 @@ function engineNow(now = Date.now()): Engine {
     else if (db.paused) { state = 'paused' }
   }
   if (db.paused && state === 'stopped') state = 'paused'
-  return { state, since: iso(since), activeSessions: live.length, pausedReason: db.paused ? db.pausedReason ?? 'admin' : undefined }
+  return { state, since: iso(since), activeSessions: live.length, pausedReason: db.paused ? db.pausedReason ?? 'admin' : undefined, paused: db.paused && state !== 'paused' ? true : undefined }
 }
 function toMe(u: AdminUser): Me {
   const active = liveSessions().find((s) => s.userId === u.id)
@@ -495,7 +498,7 @@ export async function startSession(): Promise<Session> {
   const rec: SessionRec = { id, userId: u.id, requestedAt: Date.now(), requestCount: 0, coldStartMs: REAL_COLD_START_MS, windowMs: (u.windowMinutes ?? WINDOW_MINUTES) * 60_000 }
   db.sessions.unshift(rec)
   u.windowsUsed += 1
-  db.budget.spentUsd = round2(db.budget.spentUsd + 0.11)
+  db.budget.spentUsd = round2(db.budget.spentUsd + WINDOW_COST_USD)
   persist()
   return viewSession(rec)
 }
@@ -523,7 +526,7 @@ export async function listMySessions(): Promise<SessionView[]> {
 }
 export async function sendContact(input: ContactInput): Promise<ContactRequest> {
   await sleep(rnd(250, 480))
-  const req: ContactRequest = { id: `req-${String(++db.seq).padStart(4, '0')}`, kind: input.kind, name: input.name, email: input.email, message: input.message, createdAt: iso(Date.now()) }
+  const req: ContactRequest = { id: `req-${String(++db.seq).padStart(4, '0')}`, kind: input.kind, name: input.name, email: input.email, message: input.message, createdAt: iso(Date.now()), userId: currentUser()?.id ?? null }
   db.contacts.unshift(req)
   persist()
   return req
@@ -740,7 +743,7 @@ export async function adminListSessions(): Promise<AdminSession[]> {
   await sleep(rnd(120, 260)); requireAdmin()
   return [...db.sessions].sort((a, b) => b.requestedAt - a.requestedAt).map((s) => {
     const u = db.users.find((x) => x.id === s.userId)
-    return { ...viewSession(s), userName: u?.name || '(profile not complete)', userEmail: u?.email ?? '' }
+    return { ...viewSession(s), requests: s.requestCount, userName: u?.name || '(profile not complete)', userEmail: u?.email ?? '' }
   })
 }
 export async function adminGetState(): Promise<AdminState> {
@@ -760,6 +763,18 @@ export async function adminStopEngine(): Promise<AdminState> {
   for (const s of liveSessions(now)) s.endedAt = now
   persist()
   return { engine: engineNow(), budget: { ...db.budget, asOf: iso(Date.now() - 4 * 3_600_000) }, paused: db.paused }
+}
+/** Admin action `delete`: the user row, the windows and the contact requests. The Entra account stays. */
+export async function adminDeleteUser(id: string): Promise<void> {
+  await sleep(rnd(200, 380))
+  const admin = requireAdmin()
+  if (admin.id === id) throw new ApiError(409, 'The administrator cannot delete his own account.', undefined, 'self-delete')
+  const u = db.users.find((x) => x.id === id)
+  if (!u) throw new ApiError(404, 'This user does not exist.', undefined, 'not-found')
+  db.users = db.users.filter((x) => x.id !== id)
+  db.sessions = db.sessions.filter((s) => s.userId !== id)
+  db.contacts = db.contacts.filter((c) => c.userId !== id && c.email.toLowerCase() !== u.email.toLowerCase())
+  persist()
 }
 export async function adminListContacts(): Promise<ContactRequest[]> {
   await sleep(rnd(120, 260)); requireAdmin()

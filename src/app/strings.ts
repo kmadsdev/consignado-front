@@ -1,6 +1,7 @@
 // Every user-visible string of the signed-in pages, in English. The pt-BR table is in strings.pt.ts.
 import type { ContractStatus, EngineState, HostKind } from '../api/types'
 import { pick } from '../i18n/lang.ts'
+import { windowCostText } from './cost.ts'
 import { ptBR } from './strings.pt.ts'
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -29,7 +30,7 @@ export const en = {
     label: { stopped: 'Stopped', starting: 'Starting', running: 'Running', stopping: 'Stopping', cooldown: 'Cooldown', paused: 'Paused' } as Record<EngineState, string>,
     meaning: {
       stopped: 'The cluster is off and costs nothing for compute. It starts when a recruiter opens an access window. The serverless host answers at all times.',
-      starting: 'A recruiter opened an access window. The cluster is in its cold start, which takes about 4 to 6 minutes.',
+      starting: 'A recruiter opened an access window. The cluster is in its cold start, which takes about 7 minutes (measured: 7 min 13 s).',
       running: 'The cluster is on and answers requests. It stops when the last access window ends.',
       stopping: 'The last access window ended. The cluster stops now, and the compute cost goes to zero.',
       cooldown: 'The cluster stopped a short time ago. A new window can start soon.',
@@ -294,11 +295,11 @@ export const en = {
     whatStarts: 'What starts',
     whatStartsText: 'The AKS control plane, 1 node VM, 2 pods of the Spring Boot API and the internal load balancer.',
     coldStart: 'Cold start',
-    coldStartText: 'About 4 to 6 minutes for the cluster, then about 50 s until the pods are ready. You see each stage live.',
+    coldStartText: 'About 7 minutes (measured: 7 min 13 s): 4 min 26 s for the control plane, 2 min 13 s for the node, 26 s for Spring Boot and the database, 8 s for the load balancer. You see each stage live.',
     window: 'Window',
     windowText: (minutes: number) => `${minutes} minutes. The countdown starts when the engine is ready, not when you press the button.`,
     cost: 'Cost to the owner',
-    costText: 'About US$ 0.03 to 0.05 for one window. A stopped cluster costs nothing for compute. Each account gets 3 windows.',
+    costText: `About US$ ${windowCostText('.')} per window. A stopped cluster costs nothing for compute. Each account gets 3 windows.`,
     yours: 'Your windows',
     yoursHint: (used: number, max: number) => `${used} of ${max} used.`,
     engineIs: 'Engine:',
@@ -348,15 +349,20 @@ export const en = {
     countdownRuns: (time: string) => `Ends at ${time}.`,
     starting: 'Cluster start',
     startingHint: 'The request is on its way.',
-    compressedNote: 'Design preview: the start is played in 40 s. The durations in the stages show the real size (4 to 6 minutes).',
+    compressedNote: 'Design preview: the start is played in 40 s. The durations in the stages show the real size (about 7 minutes (measured: 7 min 13 s)).',
     lastMinute: 'Less than one minute left. The cluster stops at zero.',
-    realStartNote: (elapsed: string, done: number, total: number) => `Elapsed: ${elapsed}. Stage ${done} of ${total}. A real cluster start takes 4 to 6 minutes, sometimes more. This page reads the real signals of the cluster every 2 seconds. You can stay here or come back later: the window waits for you.`,
+    realStartNote: (elapsed: string, done: number, total: number) => `Elapsed: ${elapsed}. Stage ${done} of ${total}. A real cluster start takes about 7 minutes (measured: 7 min 13 s), sometimes more. This page reads the real signals of the cluster every 2 seconds. You can stay here or come back later: the window waits for you.`,
     realReadyNote: 'This page reads the window state every 10 seconds.',
     failedStartTitle: 'The cluster did not get ready',
     failedStartText: 'The start did not reach the ready state in time, so the cluster was stopped. This start did not use one of your windows. You can try again after the cooldown.',
     failedStage: 'Last stage',
     elapsed: 'Elapsed',
     pollProblem: 'The last read of the window state failed. The page tries again.',
+    end: 'End the window now',
+    endTitle: 'End this window now?',
+    endText: 'The countdown stops and the cluster stops a few minutes later. The window counts as used: it is not given back.',
+    endConfirm: 'End the window',
+    endNotAvailable: 'Ending a window early is not available yet. The window ends when the countdown reaches zero.',
     state: 'State',
     ready: 'Ready: the pods answer',
     coldStart: 'Time to ready',

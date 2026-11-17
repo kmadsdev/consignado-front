@@ -6,12 +6,13 @@ import ContentLayout from '@cloudscape-design/components/content-layout'
 import Grid from '@cloudscape-design/components/grid'
 import Header from '@cloudscape-design/components/header'
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs'
+import Modal from '@cloudscape-design/components/modal'
 import ProgressBar from '@cloudscape-design/components/progress-bar'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator from '@cloudscape-design/components/status-indicator'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ApiError, COMPRESSED_START_MS, WINDOW_MINUTES, getSession, type SessionView } from '../api/client'
+import { ApiError, COMPRESSED_START_MS, WINDOW_MINUTES, endSession, getSession, type SessionView } from '../api/client'
 import { AKS_STAGES } from '../api/stages'
 import { useAuth } from '../auth'
 import { POLL } from '../config'
@@ -38,6 +39,20 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
   const now = useNow(250)
 
   const [pollProblem, setPollProblem] = useState(false)
+  const [confirmEnd, setConfirmEnd] = useState(false)
+  const [ending, setEnding] = useState(false)
+  const [endProblem, setEndProblem] = useState('')
+  const endNow = async () => {
+    setEnding(true); setEndProblem('')
+    try {
+      setSession(await endSession(sessionId))
+      setConfirmEnd(false)
+      refreshEngine(); void refresh()
+    } catch (err) {
+      // A 404 with no code: the gateway has no such route yet.
+      setEndProblem(err instanceof ApiError && err.status === 404 && !err.code ? T.live.endNotAvailable : err instanceof Error ? err.message : T.common.failed)
+    } finally { setEnding(false) }
+  }
 
   useEffect(() => {
     let alive = true
@@ -155,6 +170,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
                   description={currentStage?.detail ?? T.live.startingHint}
                   additionalInfo={session.compressed ? T.live.compressedNote : T.live.realStartNote(elapsed, doneStages, START_STAGES.length)}
                 />
+                <Box><Button onClick={() => { setEndProblem(''); setConfirmEnd(true) }}>{T.live.end}</Button></Box>
               </SpaceBetween>
             </Grid>
           </Container>
@@ -177,6 +193,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
                   ]}
                 />
                 <ProgressBar value={(remaining / windowMs) * 100} ariaLabel={T.live.countdown} additionalInfo={remaining < 60_000 ? T.live.lastMinute : session.compressed ? T.live.compressedNote : T.live.realReadyNote} status="in-progress" />
+                <Box><Button onClick={() => { setEndProblem(''); setConfirmEnd(true) }}>{T.live.end}</Button></Box>
               </SpaceBetween>
             </Grid>
           </Container>
@@ -225,6 +242,17 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
             <Header variant="h2" description={T.live.opsHint}>{T.live.ops}</Header>
             <Operations host="aks" canWrite={me.status === 'active'} readOnlyReason={T.held.readOnly} />
           </SpaceBetween>
+        )}
+        {confirmEnd && (session.state === 'ready' || session.state === 'starting') && (
+          <Modal
+            visible onDismiss={() => setConfirmEnd(false)} header={T.live.endTitle}
+            footer={<Box float="right"><SpaceBetween size="xs" direction="horizontal"><Button variant="link" onClick={() => setConfirmEnd(false)}>{T.common.cancel}</Button><Button variant="primary" loading={ending} onClick={() => void endNow()}>{T.live.endConfirm}</Button></SpaceBetween></Box>}
+          >
+            <SpaceBetween size="m">
+              <Box>{T.live.endText}</Box>
+              {Boolean(endProblem) && <Alert type="info">{endProblem}</Alert>}
+            </SpaceBetween>
+          </Modal>
         )}
       </SpaceBetween>
     </ContentLayout>
