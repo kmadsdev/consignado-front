@@ -233,3 +233,10 @@ test('strings: the pt-BR table of the flow has every key of the English one', as
   const keys = (o, p = '') => Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' ? keys(v, `${p}${k}.`) : [`${p}${k}:${typeof v}`])).sort()
   assert.deepEqual(keys(ptBR), keys(en))
 })
+
+test('instance "local" (Functions custom handler) is not shown as a name', () => {
+  const live = { ...guestPreview, events: guestPreview.events.map((e) => (e.stage === 'app' ? { ...e, detail: 'Spring Boot handled the request in local' } : e)), api: { instance: 'local', appMs: 3, db: null } }
+  const f = buildFlow(live)
+  assert.equal(f.instance, undefined)
+  assert.equal(f.nodes.find((n) => n.id === 'app').sub, undefined)
+})

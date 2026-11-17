@@ -34,6 +34,10 @@ export const FLOW_VARS = {
   '--fl-warn': tokens.colorTextStatusWarning,
   '--fl-idle': tokens.colorTextStatusInactive,
   '--fl-focus': tokens.colorBorderItemFocused,
+  // The own pictograms of the diagram package (edge shield, application window) read these.
+  '--dg-glyph': tokens.colorTextBodySecondary,
+  '--dg-glyph-soft': tokens.colorBackgroundContainerContent,
+  '--dg-bg': tokens.colorBackgroundContainerContent,
 } as CSSProperties
 
 const NODE_W = 132
@@ -65,7 +69,7 @@ function layout(model: FlowModel, width: number) {
     }
     height = model.nodes.some((n) => n.place === 'below' || n.place === 'pod-b') ? yB + ICON_R + TEXT_H + 8 : yMain + ICON_R + TEXT_H + 12
   } else {
-    const rowH = 124
+    const rowH = 136
     // Three columns: side nodes left and right of the main path. Narrow screens make every node narrower.
     const side = Math.max(70, Math.min(170, width / 3))
     const nw = Math.min(NODE_W, side - 4)
@@ -73,7 +77,8 @@ function layout(model: FlowModel, width: number) {
     const twoPods = model.nodes.some((m) => m.place === 'pod-b')
     for (const n of model.nodes) {
       const y = 28 + n.col * rowH
-      if (n.place === 'main') placed.set(n.id, { node: n, x, y, w: nw })
+      const crowded = model.nodes.some((m) => m.col === n.col && m.place !== 'main')
+      if (n.place === 'main') placed.set(n.id, { node: n, x, y, w: crowded ? nw : Math.min(NODE_W + 40, width - 8) })
       else if (n.place === 'pod-a') placed.set(n.id, { node: n, x: twoPods ? x - side / 2 : x, y, w: twoPods ? nw : NODE_W })
       else if (n.place === 'above') placed.set(n.id, { node: n, x: x - side, y, w: nw })
       else if (n.place === 'below') placed.set(n.id, { node: n, x: x + side, y, w: nw })
@@ -142,9 +147,11 @@ export interface FlowDiagramProps {
   label: string
   /** Extra content of the PostgreSQL popover (the database block). */
   dbDetail?: ReactNode
+  /** Browser total minus gateway total: shown on the edge node, which the gateway cannot measure. */
+  edgeNetworkMs?: number
 }
 
-export function FlowDiagram({ model, pos, status, label, dbDetail }: FlowDiagramProps) {
+export function FlowDiagram({ model, pos, status, label, dbDetail, edgeNetworkMs }: FlowDiagramProps) {
   const wrap = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
   useEffect(() => {
@@ -193,7 +200,7 @@ export function FlowDiagram({ model, pos, status, label, dbDetail }: FlowDiagram
             return <span key={e.id} className="fl-edge-ms" style={{ left: x, top: y }}>{duration(e.ms)}</span>
           })}
           {[...geo.placed.values()].map((p) => (
-            <FlowNodeView key={p.node.id} p={p} model={model} state={frame.nodeState[p.node.id] ?? 'idle'} status={status} dbDetail={dbDetail} />
+            <FlowNodeView key={p.node.id} p={p} model={model} state={frame.nodeState[p.node.id] ?? 'idle'} status={status} dbDetail={dbDetail} edgeNetworkMs={p.node.kind === 'edge' && p.node.ms === undefined ? edgeNetworkMs : undefined} />
           ))}
         </>
       )}
@@ -201,16 +208,20 @@ export function FlowDiagram({ model, pos, status, label, dbDetail }: FlowDiagram
   )
 }
 
-function FlowNodeView({ p, model, state, status, dbDetail }: { p: Placed; model: FlowModel; state: StageStatus | 'idle'; status?: PlatformStatus | null; dbDetail?: ReactNode }) {
+function FlowNodeView({ p, model, state, status, dbDetail, edgeNetworkMs }: { p: Placed; model: FlowModel; state: StageStatus | 'idle'; status?: PlatformStatus | null; dbDetail?: ReactNode; edgeNetworkMs?: number }) {
   const n = p.node
   const svcId = SERVICE_OF[n.kind]
   const live = svcId ? serviceOf(status, svcId) : undefined
   const isDb = n.kind === 'database'
   const showMs = state === 'done' || state === 'error'
   const title = n.kind === 'pod' && n.sub ? F.node.pod : F.node[n.kind]
-  const fullSub = n.sub ?? (n.kind === 'pod' && !n.answered ? F.otherPod : live?.name ?? F.nodeSub[n.kind])
-  const sub = n.kind === 'pod' || n.kind === 'app' ? shortName(fullSub) : fullSub
+  const fnApp = n.kind === 'app' && model.host === 'functions' ? serviceOf(status, 'functions')?.name : undefined
+  const fullSub = n.sub ?? (n.kind === 'pod' && !n.answered ? F.otherPod : live?.name ?? fnApp ?? F.nodeSub[n.kind])
+  // Pod names differ only in the last part (consignado-api-5d897fb475-ffmb4): show that part.
+  const sub = n.kind === 'pod' && n.sub ? shortName(n.sub, 12) : fullSub
   let extra: string | undefined
+  const shownMs = n.ms ?? edgeNetworkMs
+  if (n.ms === undefined && edgeNetworkMs !== undefined) extra = F.edgeNetwork
   if (n.kind === 'keyvault' && n.cached) extra = F.cached
   if (isDb && model.db && model.db.statements > 0) extra = F.statements(model.db.statements)
   if (n.kind === 'pod' && n.answered && model.nodes.some((m) => m.place === 'pod-b')) extra = F.answered
@@ -248,7 +259,7 @@ function FlowNodeView({ p, model, state, status, dbDetail }: { p: Placed; model:
           </span>
           <span className="fl-label">{title}</span>
           <span className="fl-sub mono" title={fullSub}>{sub}</span>
-          <span className="fl-ms mono">{showMs && n.ms !== undefined ? duration(n.ms) : ' '}{extra ? ` · ${extra}` : ''}</span>
+          <span className="fl-ms mono">{showMs && shownMs !== undefined ? duration(shownMs) : '\u00a0'}{extra && (showMs || n.ms !== undefined || edgeNetworkMs === undefined) ? ` · ${extra}` : ''}</span>
           {metric && <span className="fl-metric">{F.liveMetric(metric.key, metricText(metric, '-', decimal))}</span>}
         </button>
       </Popover>

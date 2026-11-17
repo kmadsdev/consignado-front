@@ -17,10 +17,15 @@ import { F } from './strings'
 /** "edge 12 ms > gateway 4 ms > load balancer 9 ms > app 6 ms > database 31 ms (1 insert, 2 select)" */
 export function pathLine(record: CallRecord): string {
   const model = buildFlow(record.trace)
-  return pathSteps(model).map((s) => {
+  const parts = pathSteps(model).map((s) => {
     const extra = s.stage === 'database' && model.db && model.db.statements > 0 ? ` (${statementKinds(model.db, F.kinds)})` : ''
     return `${F.stage[s.stage] ?? s.stage} ${duration(s.ms)}${extra}`
-  }).join(' > ')
+  })
+  // The gateway cannot measure the edge and the internet path: the browser can (its total minus the gateway total).
+  if (record.browserMs !== undefined && !model.segments.some((s) => s.stage === 'edge' && s.timed)) {
+    parts.unshift(`${F.edgeNetwork} ${duration(Math.max(0, record.browserMs - record.trace.totalMs))}`)
+  }
+  return parts.join(' > ')
 }
 
 export function InlineRecord({ record, onOpen }: { record: CallRecord | null | undefined; onOpen?: () => void }) {

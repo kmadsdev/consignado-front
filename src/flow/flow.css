@@ -36,6 +36,9 @@
 .fl-live-unknown { background: var(--fl-bg); border-color: var(--fl-idle); }
 .fl-label { margin-top: 5px; font-size: 13px; line-height: 16px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fl-sub, .fl-ms, .fl-metric { font-size: 12px; line-height: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The time line may wrap (PostgreSQL: "46 ms · 3 statements"); no node with a long time line has a line below it. */
+.fl-ms { white-space: normal; }
+.fl-nowrap { white-space: nowrap; }
 .fl-sub, .fl-metric { color: var(--fl-muted); }
 .fl-node-error .fl-ms { color: var(--fl-error); }
 .fl-pop-list { list-style: none; margin: 0; padding: 0; font-size: 12px; }
