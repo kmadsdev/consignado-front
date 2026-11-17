@@ -64,6 +64,9 @@ function PageHeader() {
           {t.header.secondaryAction}
         </Button>
       </SpaceBetween>
+      <Box color="text-body-secondary" fontSize="body-s">
+        {t.header.signInNote}
+      </Box>
       <Box padding={{ bottom: 'xs' }} />
     </SpaceBetween>
   )
@@ -188,7 +191,7 @@ function PathSection() {
           <Box variant="strong" fontSize="body-s" color="inherit">
             {t.path.pageLoadLabel}.
           </Box>{' '}
-          {t.path.pageLoad}
+          {t.path.pageLoad} {t.path.edgeNote}
         </Box>
       }
     >

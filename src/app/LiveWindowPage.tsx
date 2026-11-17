@@ -13,7 +13,9 @@ import StatusIndicator from '@cloudscape-design/components/status-indicator'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError, COMPRESSED_START_MS, WINDOW_MINUTES, endSession, getSession, type SessionView } from '../api/client'
+import { AKS_STAGES } from '../api/stages'
 import { useAuth } from '../auth'
+import { CAN_END_SESSION, POLL } from '../config'
 import { ArchitectureDiagram, LifecycleTimeline } from '../diagram'
 import { useShell } from '../shell/context'
 import { CenteredSpinner, CopyId, Gate, Mono, useNow } from './common'
@@ -22,6 +24,10 @@ import { Operations } from './Operations'
 import { T } from './strings'
 
 const WINDOW_MS = WINDOW_MINUTES * 60_000
+/** The stages of a cluster start, from the request to the first answer of the API. */
+const START_STAGES: readonly string[] = AKS_STAGES.slice(0, AKS_STAGES.indexOf('window-open'))
+/** After a window ends, the page waits this long for the "cluster stopped" event. Then it stops reading. */
+const MAX_READS_AFTER_END = 60
 
 function LiveWindow({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate()
@@ -34,22 +40,32 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
   const lastState = useRef<string>('')
   const now = useNow(250)
 
+  const [pollProblem, setPollProblem] = useState(false)
+
   useEffect(() => {
     let alive = true
     let timer = 0
+    let readsAfterEnd = 0
+    let seen = false
     const read = async () => {
       try {
         const s = await getSession(sessionId)
         if (!alive) return
-        setSession(s); setFailure(null)
+        seen = true
+        setSession(s); setFailure(null); setPollProblem(false)
         if (s.state !== lastState.current) { lastState.current = s.state; refreshEngine(); void refresh() }
         const stopped = s.events.some((e) => e.stage === 'cluster-stop' && e.status === 'done')
-        if (!stopped) timer = window.setTimeout(read, 1000)
+        const over = s.state === 'ended' || s.state === 'failed'
+        if (over) readsAfterEnd += 1
+        if (!stopped && readsAfterEnd < MAX_READS_AFTER_END) timer = window.setTimeout(read, s.state === 'starting' ? POLL.sessionStarting : POLL.sessionReady)
       } catch (err) {
         if (!alive) return
         const status = err instanceof ApiError ? err.status : 0
-        setFailure({ status, message: err instanceof Error ? err.message : T.common.failed })
-        if (status === 0) timer = window.setTimeout(read, 3000)
+        // A short problem (network, a busy gateway) must not take the page away: keep the last state and read again.
+        const transient = status === 0 || status === 429 || status >= 500
+        if (seen && transient) setPollProblem(true)
+        else setFailure({ status, message: err instanceof Error ? err.message : T.common.failed })
+        if (transient) timer = window.setTimeout(read, 5000)
       }
     }
     void read()
@@ -60,7 +76,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
     <Header
       variant="h1"
       description={T.live.description}
-      actions={session && session.state !== 'ended' ? <Button onClick={() => setConfirmEnd(true)}>{T.live.endNow}</Button> : undefined}
+      actions={CAN_END_SESSION && session && session.state !== 'ended' && session.state !== 'failed' ? <Button onClick={() => setConfirmEnd(true)}>{T.live.endNow}</Button> : undefined}
     >
       {T.live.title}{' '}
       <Box display="inline" fontSize="heading-m" color="text-body-secondary"><Mono>{sessionId}</Mono></Box>{' '}
@@ -87,8 +103,14 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
   const requestedAt = new Date(session.requestedAt).getTime()
   const expiresAt = session.expiresAt ? new Date(session.expiresAt).getTime() : 0
   const remaining = session.state === 'ready' ? Math.max(0, expiresAt - now) : 0
-  const startPercent = Math.min(100, ((now - requestedAt) / COMPRESSED_START_MS) * 100)
+  const doneStages = new Set(session.events.filter((e) => e.status === 'done' && START_STAGES.includes(e.stage)).map((e) => e.stage)).size
+  // The mock plays a fixed 40 s. A real start has no fixed length: the bar shows the stages that are done.
+  const startPercent = session.compressed
+    ? Math.min(100, ((now - requestedAt) / COMPRESSED_START_MS) * 100)
+    : Math.min(100, (doneStages / START_STAGES.length) * 100)
+  const elapsed = clock(Math.max(0, now - requestedAt))
   const currentStage = [...session.events].reverse().find((e) => e.status === 'active')
+  const failedStage = [...session.events].reverse().find((e) => e.status === 'error') ?? session.events[session.events.length - 1]
   const windowLength = session.readyAt && session.endedAt ? new Date(session.endedAt).getTime() - new Date(session.readyAt).getTime() : 0
   const stopped = session.events.some((e) => e.stage === 'cluster-stop' && e.status === 'done')
 
@@ -102,6 +124,26 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
   return (
     <ContentLayout header={header}>
       <SpaceBetween size="l">
+        {pollProblem && <Alert type="warning">{T.live.pollProblem}</Alert>}
+        {session.state === 'failed' && (
+          <Container header={<Header variant="h2">{T.live.failedStartTitle}</Header>}>
+            <SpaceBetween size="m">
+              <Alert type="error">{T.live.failedStartText}</Alert>
+              <KeyValuePairs
+                columns={3}
+                items={[
+                  { label: T.live.failedStage, value: failedStage ? <><Mono>{failedStage.stage}</Mono>{failedStage.detail ? `: ${failedStage.detail}` : ''}</> : '-' },
+                  { label: T.live.endedAt, value: session.endedAt ? dateTime(session.endedAt) : '-' },
+                  { label: T.live.next, value: T.live.nextText(me ? Math.max(0, me.windowsMax - me.windowsUsed) : 0) },
+                ]}
+              />
+              <SpaceBetween size="xs" direction="horizontal">
+                <Button variant="primary" onClick={() => navigate('/app/aks')}>{T.live.backToAks}</Button>
+                <Button onClick={() => navigate('/app/operations')}>{T.live.toOperations}</Button>
+              </SpaceBetween>
+            </SpaceBetween>
+          </Container>
+        )}
         {session.state === 'starting' && (
           <Container>
             <Grid gridDefinition={[{ colspan: { default: 12, s: 4 } }, { colspan: { default: 12, s: 8 } }]}>
@@ -115,7 +157,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
                   value={startPercent}
                   label={T.live.starting}
                   description={currentStage?.detail ?? T.live.startingHint}
-                  additionalInfo={T.live.compressedNote}
+                  additionalInfo={session.compressed ? T.live.compressedNote : T.live.realStartNote(elapsed, doneStages, START_STAGES.length)}
                 />
               </SpaceBetween>
             </Grid>
@@ -138,7 +180,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
                     { label: T.live.requests, value: <Mono>{session.requestCount}</Mono> },
                   ]}
                 />
-                <ProgressBar value={(remaining / WINDOW_MS) * 100} ariaLabel={T.live.countdown} additionalInfo={remaining < 60_000 ? T.live.lastMinute : T.live.compressedNote} status="in-progress" />
+                <ProgressBar value={(remaining / WINDOW_MS) * 100} ariaLabel={T.live.countdown} additionalInfo={remaining < 60_000 ? T.live.lastMinute : session.compressed ? T.live.compressedNote : T.live.realReadyNote} status="in-progress" />
               </SpaceBetween>
             </Grid>
           </Container>
@@ -172,16 +214,14 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
           </Container>
         )}
 
-        <Grid gridDefinition={[{ colspan: { default: 12, m: 8 } }, { colspan: { default: 12, m: 4 } }]}>
-          <Container fitHeight header={<Header variant="h2" description={T.live.diagramHint}>{T.live.diagram}</Header>}>
-            <div className="diagram-frame">
-              <ArchitectureDiagram view="aks" events={session.events} height={460} />
-            </div>
-          </Container>
-          <Container fitHeight header={<Header variant="h2" description={T.live.timelineHint}>{T.live.timeline}</Header>}>
-            <LifecycleTimeline view="aks" events={session.events} />
-          </Container>
-        </Grid>
+        <Container header={<Header variant="h2" description={T.live.diagramHint}>{T.live.diagram}</Header>}>
+          <div className="diagram-frame">
+            <ArchitectureDiagram view="aks" events={session.events} height={640} />
+          </div>
+        </Container>
+        <Container header={<Header variant="h2" description={T.live.timelineHint}>{T.live.timeline}</Header>}>
+          <LifecycleTimeline view="aks" events={session.events} />
+        </Container>
 
         {session.state === 'ready' && me && (
           <SpaceBetween size="m">

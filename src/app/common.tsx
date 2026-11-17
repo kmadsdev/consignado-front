@@ -101,7 +101,7 @@ function StatusPage({ title, children, actions }: { title: string; children: Rea
  * guest -> sign-in prompt, new account -> profile form, blocked -> status page.
  */
 export function Gate({ need = 'user', title, children }: { need?: 'user' | 'admin'; title: string; children: ReactNode }) {
-  const { me, loading, signIn } = useAuth()
+  const { me, loading, signIn, authError } = useAuth()
   const navigate = useNavigate()
   if (loading) return <CenteredSpinner text={T.common.loadingAccount} />
   if (!me) {
@@ -110,14 +110,16 @@ export function Gate({ need = 'user', title, children }: { need?: 'user' | 'admi
         title={title}
         actions={
           <SpaceBetween size="xs" direction="horizontal">
-            <Button variant="primary" onClick={signIn}>{T.gate.signIn}</Button>
+            <Button variant="primary" onClick={() => signIn()}>{T.gate.signIn}</Button>
             <Button onClick={() => navigate('/app/simulate')}>{T.gate.guestCta}</Button>
           </SpaceBetween>
         }
       >
+        {Boolean(authError) && <Alert type="warning">{authError}</Alert>}
         <Box variant="h2">{T.gate.guestTitle}</Box>
         <Box>{need === 'admin' ? T.gate.adminText : T.gate.guestText}</Box>
         <Box color="text-body-secondary">{T.gate.signInHow}</Box>
+        <Box color="text-body-secondary">{T.gate.newAccount}</Box>
       </StatusPage>
     )
   }

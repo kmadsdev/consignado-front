@@ -106,7 +106,7 @@ export function SimulatePage() {
       <SpaceBetween size="l">
         <Alert type="info" header={me ? T.guest.signedTitle : T.guest.noticeTitle}>{me ? T.guest.signedText : T.guest.noticeText}</Alert>
 
-        <Grid gridDefinition={[{ colspan: { default: 12, m: 5 } }, { colspan: { default: 12, m: 7 } }]}>
+        <Grid gridDefinition={[{ colspan: 12 }, { colspan: 12 }]}>
           <Container fitHeight header={<Header variant="h2" description={T.guest.formHint}>{T.guest.form}</Header>}>
             <form onSubmit={(e) => { e.preventDefault(); void submit() }} noValidate>
               <SpaceBetween size="m">
@@ -150,11 +150,11 @@ export function SimulatePage() {
           </Container>
           <Container fitHeight header={<Header variant="h2" description={T.guest.requestHint}>{T.guest.request}</Header>}>
             {record
-              ? <RequestInspector record={record} diagramHeight={280} />
+              ? <RequestInspector record={record} diagramHeight={520} stacked />
               : (
                 <SpaceBetween size="s">
                   <Box color="text-body-secondary">{T.guest.requestEmpty}</Box>
-                  <div className="diagram-frame"><ArchitectureDiagram view="functions" events={[]} height={280} /></div>
+                  <div className="diagram-frame"><ArchitectureDiagram view="functions" events={[]} height={520} /></div>
                 </SpaceBetween>
               )}
           </Container>
@@ -218,8 +218,8 @@ export function SimulatePage() {
           }
         >
           <SpaceBetween size="m">
-            <Grid gridDefinition={[{ colspan: { default: 12, m: 8 } }, { colspan: { default: 12, m: 4 } }]}>
-              <div className="diagram-frame"><ArchitectureDiagram view="aks" events={demo.events} height={420} /></div>
+            <Grid gridDefinition={[{ colspan: 12 }, { colspan: 12 }]}>
+              <div className="diagram-frame"><ArchitectureDiagram view="aks" events={demo.events} height={640} /></div>
               <div>
                 <Box variant="awsui-key-label">{T.guest.aksTimeline}</Box>
                 {demo.events.length === 0 && <Box color="text-body-secondary">{T.guest.aksTimelineEmpty}</Box>}
