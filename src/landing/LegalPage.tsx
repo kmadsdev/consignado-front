@@ -6,7 +6,11 @@ import Header from '@cloudscape-design/components/header'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import TextContent from '@cloudscape-design/components/text-content'
 import { InternalLink, NavRoot, PageFooter } from './nav'
+import { LOCALE } from '../i18n/lang.ts'
 import { NOTICE_DATE, common, privacy, terms, type LegalSection } from './strings'
+
+// A calendar date with no time: formatted in UTC, so that the day does not move.
+const NOTICE_DATE_TEXT = new Intl.DateTimeFormat(LOCALE, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${NOTICE_DATE}T00:00:00Z`))
 
 interface LegalPageProps {
   title: string
@@ -27,7 +31,7 @@ function LegalPage({ title, description, alert, sections }: LegalPageProps) {
               {title}
             </Header>
             <Box color="text-body-secondary" fontSize="body-s">
-              {common.lastUpdated}: <Box variant="code" display="inline" fontSize="body-s">{NOTICE_DATE}</Box>
+              {common.lastUpdated}: <Box variant="code" display="inline" fontSize="body-s">{NOTICE_DATE_TEXT}</Box>
             </Box>
             {alert && (
               <Alert type="info" header={alert.title}>
