@@ -92,6 +92,10 @@ export const en = {
     status: 'Status', simulation: 'Simulation', code: 'Code', maxMargin: 'Margin cap', maxTerm: 'Longest term',
   },
   margin: { limit: 'Margin limit', committed: 'Committed', available: 'Available' },
+  wait: {
+    running: 'Call in progress. Elapsed:',
+    coldHint: 'If the serverless host was idle, the first call takes about 19 s.',
+  },
   ops: {
     tabsLabel: 'Shared data',
     loading: 'Loading the tables from the host',
@@ -104,8 +108,6 @@ export const en = {
     refresh: 'Load the tables again',
     readOnlyTitle: 'Read-only',
     readOnly: 'You can read the data, but you cannot change it.',
-    slow: 'The call is running. A cold start of the serverless host takes about 19 s.',
-    slowAks: 'The call is running.',
     failed: 'The API refused the request',
     timing: (time: string, speed: 'cold' | 'slow' | 'warm') => `(${time}, ${speed === 'slow' ? 'slow call' : speed})`,
     tableLoads: (n: number) => `Table loads (${n} requests)`,
@@ -396,7 +398,6 @@ export const en = {
     rateHint: 'Up to 5%.',
     income: 'Net monthly income',
     submit: 'Calculate on the serverless host',
-    slow: 'Cold start of the serverless host: about 19 s.',
     failedTitle: 'The host refused the request',
     installment: 'Installment',
     total: 'Total to pay',

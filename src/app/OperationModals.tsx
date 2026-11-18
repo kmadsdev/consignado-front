@@ -11,7 +11,7 @@ import type { CallRecord } from '../flow/store'
 import Select from '@cloudscape-design/components/select'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator from '@cloudscape-design/components/status-indicator'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { formatCpf, installmentOf, isValidCpf, randomCustomerInput, type CustomerInput, type IncomeResult, type SimulationResult } from '../api/client'
 import type { Agreement, Customer, Margin } from '../api/types'
 import { Mono } from './common'
@@ -37,7 +37,7 @@ export function MarginPairs({ margin }: { margin: Margin }) {
 }
 
 // ---- add customer -------------------------------------------------------------
-export function AddCustomerModal(props: { agreements: Agreement[]; busy: boolean; onDismiss: () => void; onSubmit: (input: CustomerInput) => void; record?: CallRecord | null }) {
+export function AddCustomerModal(props: { agreements: Agreement[]; busy: boolean; wait?: ReactNode; onDismiss: () => void; onSubmit: (input: CustomerInput) => void; record?: CallRecord | null }) {
   const [agreementId, setAgreementId] = useState('')
   const [name, setName] = useState('')
   const [cpf, setCpf] = useState('')
@@ -66,7 +66,8 @@ export function AddCustomerModal(props: { agreements: Agreement[]; busy: boolean
       header={T.addCustomer.title}
       footer={
         <Box float="right">
-          <SpaceBetween size="xs" direction="horizontal">
+          <SpaceBetween size="xs" direction="horizontal" alignItems="center">
+            {props.wait}
             <Button variant="link" onClick={props.onDismiss} disabled={props.busy}>{T.common.cancel}</Button>
             <Button variant="primary" onClick={submit} loading={props.busy}>{T.addCustomer.submit}</Button>
           </SpaceBetween>
@@ -110,6 +111,7 @@ export function SimulateModal(props: {
   customer: Customer
   agreement: Agreement
   busy: boolean
+  wait?: ReactNode
   canWrite: boolean
   result: SimulationResult | null
   onDismiss: () => void
@@ -138,7 +140,8 @@ export function SimulateModal(props: {
       header={T.simulate.title}
       footer={
         <Box float="right">
-          <SpaceBetween size="xs" direction="horizontal">
+          <SpaceBetween size="xs" direction="horizontal" alignItems="center">
+            {props.wait}
             <Button variant="link" onClick={props.onDismiss} disabled={props.busy}>{result ? T.common.close : T.common.cancel}</Button>
             {result
               ? <Button variant="primary" loading={props.busy} disabled={!result.fitsMargin || !props.canWrite} disabledReason={T.simulate.noContractReason} onClick={() => props.onCreateContract(result.simulation.id)}>{T.simulate.createContract}</Button>
@@ -200,6 +203,7 @@ export function SimulateModal(props: {
 export function IncomeModal(props: {
   customer: Customer
   busy: boolean
+  wait?: ReactNode
   margin: Margin | null
   result: IncomeResult | null
   onDismiss: () => void
@@ -220,7 +224,8 @@ export function IncomeModal(props: {
       header={T.income.title}
       footer={
         <Box float="right">
-          <SpaceBetween size="xs" direction="horizontal">
+          <SpaceBetween size="xs" direction="horizontal" alignItems="center">
+            {props.wait}
             <Button variant="link" onClick={props.onDismiss} disabled={props.busy}>{result ? T.common.close : T.common.cancel}</Button>
             {!result && <Button variant="primary" loading={props.busy} onClick={submit}>{T.income.submit}</Button>}
           </SpaceBetween>
