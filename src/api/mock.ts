@@ -6,6 +6,8 @@ import type {
   EngineState, HostKind, LifecycleEvent, Margin, Me, Metric, PlatformStatus, Profile, RequestTrace, ServiceStatus, Session, Simulation,
 } from './types'
 import { ApiError } from './errors'
+import { E } from './strings'
+import { changeWithVersion, checkIfMatch, rememberEtag } from './versions'
 import { cpfForApi, formatCpf, maskCpf, type PageInfo } from './map'
 import { WINDOW_COST_USD } from '../app/cost.ts'
 
@@ -576,8 +578,10 @@ export function listCustomers(host: HostKind) {
 export function listSimulations(host: HostKind) {
   return call(host, 'GET /api/v1/simulations', () => [...db.simulations].sort((a, b) => b.id.localeCompare(a.id)), { sql: { select: 2 }, dbMs: [24, 52] })
 }
-export function listContracts(host: HostKind) {
-  return call(host, 'GET /api/v1/contracts', () => [...db.contracts].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), { sql: { select: 2 }, dbMs: [24, 56] })
+export async function listContracts(host: HostKind) {
+  const res = await call(host, 'GET /api/v1/contracts', () => [...db.contracts].map(withEtag).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), { sql: { select: 2 }, dbMs: [24, 56] })
+  for (const c of res.data) rememberEtag(host, c.id, null, c.etag)
+  return res
 }
 export function createCustomer(host: HostKind, input: CustomerInput) {
   return call(host, 'POST /api/v1/customers', () => {
@@ -633,11 +637,34 @@ export function createContract(host: HostKind, simulationId: string) {
     const contract: Contract = { id: nextId('ctr'), customerId: simulation.customerId, simulationId, status: 'PENDING', principal: simulation.principal, termMonths: simulation.termMonths, installment: simulation.installment, createdAt: iso(Date.now()) }
     db.contracts.push(contract)
     log(`created contract ${contract.id}`, host)
-    return contract
-  }, { sql: { select: 3, insert: 2 }, dbMs: [48, 96] })
+    return withEtag(contract)
+  }, { sql: { select: 3, insert: 2 }, dbMs: [48, 96] }).then((res) => { rememberEtag(host, res.data.id, null, res.data.etag); return res })
+}
+// The version of a mock contract, like the JPA @Version of the API: 0 at creation, +1 per state change.
+// A row saved before this field existed has version 0.
+function versionOf(c: Contract): number {
+  const n = Number((c.etag ?? '"0"').replace(/"/g, ''))
+  return Number.isInteger(n) && n >= 0 ? n : 0
+}
+function withEtag(c: Contract): Contract {
+  return { ...c, etag: `"${versionOf(c)}"` }
+}
+/** One contract with its ETag, like `GET /api/v1/contracts/{id}`. */
+export async function getContract(host: HostKind, id: string): Promise<ApiResult<Contract> & { etag: string | null }> {
+  const res = await call(host, `GET /api/v1/contracts/${id}`, () => {
+    const contract = db.contracts.find((c) => c.id === id)
+    if (!contract) throw new ApiError(404, `Contract ${id} does not exist.`)
+    return withEtag(contract)
+  }, { sql: { select: 1 }, dbMs: [8, 20] })
+  return { ...res, etag: res.data.etag ?? null }
 }
 const ACTION_PAST: Record<ContractAction, string> = { approve: 'approved', reject: 'rejected', activate: 'activated', settle: 'settled', cancel: 'cancelled' }
-export function contractAction(host: HostKind, id: string, action: ContractAction) {
+/** A state change with `If-Match`, the same flow as real mode (versions.ts). */
+export async function contractAction(host: HostKind, id: string, action: ContractAction): Promise<ApiResult<Contract>> {
+  const res = await changeWithVersion({ get: getContract, act: postAction, messages: { stale: E.staleVersion, missing: E.versionMissing } }, host, id, action)
+  return { data: res.data, trace: res.trace, label: res.label }
+}
+async function postAction(host: HostKind, id: string, action: ContractAction, ifMatch: string): Promise<ApiResult<Contract> & { etag: string | null }> {
   // Activation writes the installment schedule (two rows per month) and the outbox event: about 4 to 5 s, not a cold start.
   const sqlOpts: Partial<TraceOptions> = action === 'activate'
     ? { sql: { select: 3, insert: 2 * (db.contracts.find((c) => c.id === id)?.termMonths ?? 48) + 2, update: 1 }, dbMs: [3900, 4700], appMs: [120, 260] }
@@ -646,12 +673,17 @@ export function contractAction(host: HostKind, id: string, action: ContractActio
     requireWriter()
     const contract = db.contracts.find((c) => c.id === id)
     if (!contract) throw new ApiError(404, `Contract ${id} does not exist.`)
+    // The gateway rule (428) and the API rule (412), before any change.
+    const check = checkIfMatch(versionOf(contract), ifMatch)
+    if (check === 'missing') throw new ApiError(428, 'If-Match is required: send the ETag of your last read of this contract', undefined, 'precondition-required')
+    if (check === 'stale') throw new ApiError(412, `Contract ${id} changed: version ${versionOf(contract)} is current.`, undefined, 'precondition-failed')
     const next = CONTRACT_TRANSITIONS[contract.status][action]
     if (!next) throw new ApiError(409, `A contract in state ${contract.status} cannot be ${ACTION_PAST[action]}.`)
     contract.status = next
+    contract.etag = `"${versionOf(contract) + 1}"`
     log(`${ACTION_PAST[action]} contract ${id}`, host)
     return { ...contract }
-  }, sqlOpts)
+  }, sqlOpts).then((res) => ({ ...res, etag: res.data.etag ?? null }))
 }
 
 // ---- guest calls (stateless, no database) ------------------------------------------------
