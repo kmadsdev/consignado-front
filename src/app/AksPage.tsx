@@ -17,6 +17,7 @@ import { useAuth } from '../auth'
 import { MOCK, POLL } from '../config'
 import { useShell } from '../shell/context'
 import { CopyId, EngineStatus, Gate, Mono } from './common'
+import { Explain } from './Explain'
 import { dateTime, duration } from './format'
 import { T } from './strings'
 import { openWindow } from './windowLink'
@@ -131,7 +132,10 @@ function Aks() {
   return (
     <ContentLayout header={<Header variant="h1" description={T.aks.description(minutes)}>{T.aks.title}</Header>}>
       <SpaceBetween size="l">
-        <Container header={<Header variant="h2" description={T.aks.howHint}>{T.aks.how}</Header>}>
+        <Container
+          header={<Header variant="h2" description={T.aks.howHint}>{T.aks.how}</Header>}
+          footer={<SpaceBetween size="s"><Explain text={T.explain.window} /><Explain text={T.explain.start} /></SpaceBetween>}
+        >
           <KeyValuePairs
             columns={4}
             items={[

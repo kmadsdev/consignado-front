@@ -20,6 +20,7 @@ import { ArchitectureDiagram, LifecycleTimeline } from '../diagram'
 import { LifecycleReplay } from '../flow/LifecycleReplay'
 import { useShell } from '../shell/context'
 import { CenteredSpinner, CopyId, Gate, Mono, useNow } from './common'
+import { Explain } from './Explain'
 import { clock, dateTime, duration } from './format'
 import { Operations } from './Operations'
 import { T } from './strings'
@@ -235,12 +236,12 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
           </Container>
         )}
 
-        <Container header={<Header variant="h2" description={T.live.diagramHint}>{T.live.diagram}</Header>}>
+        <Container header={<Header variant="h2" description={T.live.diagramHint}>{T.live.diagram}</Header>} footer={<Explain text={T.explain.window} />}>
           {session.state === 'starting'
             ? <div className="diagram-frame"><ArchitectureDiagram view="aks" events={session.events} height={640} /></div>
             : <LifecycleReplay events={session.events} runKey={session.id} height={640} autoPlay={false} showChecklist={false} />}
         </Container>
-        <Container header={<Header variant="h2" description={T.live.timelineHint}>{T.live.timeline}</Header>}>
+        <Container header={<Header variant="h2" description={T.live.timelineHint}>{T.live.timeline}</Header>} footer={<Explain text={T.explain.start} />}>
           <LifecycleTimeline view="aks" events={session.events} />
         </Container>
 
