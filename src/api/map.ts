@@ -2,7 +2,7 @@
 // like `fullName`, `netMonthlySalary`, `installmentAmount`) and the frontend
 // types of ./types.ts. Both directions: responses and request bodies.
 // Pure functions, type-only imports: `node --test` runs this file as it is.
-import type { Agreement, ApiTiming, Contract, ContractStatus, Customer, HostKind, LifecycleEvent, Margin, RequestTrace, Simulation, StageStatus } from './types'
+import type { Agreement, ApiBudget, ApiTiming, Budget, Contract, ContractStatus, Customer, HostKind, LifecycleEvent, Margin, RequestTrace, Simulation, StageStatus } from './types'
 
 // ---- the API shapes (application/Views.java, api/Requests.java) ---------------
 export interface ApiAgreement { id: string; code: string; name: string; maxMarginPercent: number | string; maxTermMonths: number; monthlyInterestRate: number | string; createdAt: string }
@@ -69,6 +69,14 @@ export function toPreview(p: ApiPreview): { installment: number; totalAmount: nu
   return { installment: num(p.installment), totalAmount: num(p.totalAmount), totalInterest: num(p.totalInterest), marginLimit: num(p.marginLimit), fitsMargin: p.withinMargin !== false }
 }
 /** A paged listing, or a plain array (the snapshot of the gateway holds plain arrays). */
+/** The admin budget: the new fields when present, else the old ones. Default currency: BRL (the billing currency). */
+export function toBudget(b: ApiBudget): Budget {
+  const limit = b.limit ?? b.limitUsd ?? 0
+  const spent = b.spent ?? b.spentUsd ?? 0
+  const code = typeof b.currency === 'string' && /^[A-Za-z]{3}$/.test(b.currency) ? b.currency.toUpperCase() : 'BRL'
+  return { limit, spent, currency: code, asOf: b.asOf }
+}
+
 export function toList<A, T>(body: ApiPage<A> | A[] | null | undefined, map: (a: A) => T): { items: T[]; page: PageInfo } {
   if (Array.isArray(body)) return { items: body.map(map), page: { page: 0, size: body.length, totalElements: body.length, totalPages: 1 } }
   const content = Array.isArray(body?.content) ? body.content : []
