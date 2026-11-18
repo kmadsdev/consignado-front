@@ -38,7 +38,7 @@ const N_EN = {
   gatewayAks: { label: 'Gateway', sub: 'token, window, routing', what: 'The gateway checks the token, the windows left and the budget, starts the cluster through Azure Resource Manager and routes the call. Only the gateway can start or stop the cluster.' },
   entra: { label: 'Microsoft Entra ID', sub: 'sign-in, tokens', what: 'Entra ID signs you in with a one-time code sent by email and issues the token that the gateway checks. Recruiters are restricted guest accounts in my own tenant.' },
   keyvault: { label: 'Key Vault', sub: 'secrets', what: 'Key Vault holds the secrets. The gateway and the pods read them with their own identity, so no password is stored in code or in settings.' },
-  fn: { label: 'Function App', sub: 'Spring Boot API', what: 'Azure Functions runs the same API jar as a custom handler, with no server to manage. It answers at all times, with a cold start of about 19 s after idle time.' },
+  fn: { label: 'Function App', sub: 'Spring Boot API', what: 'Azure Functions runs the same build artifact as AKS, an executable Spring Boot JAR, as a custom handler, with no server to manage. It answers at all times, with a cold start of about 19 s after idle time.' },
   fnhost: { label: 'Functions host', sub: 'instance', what: 'When no instance is in memory, Azure starts one. This is the cold start.' },
   app: { label: 'Spring Boot API', sub: 'JVM', what: 'The JVM loads the Spring Boot application. A warm instance skips this stage.' },
   lb: { label: 'Load balancer', sub: 'internal', what: 'The internal Azure load balancer gives the cluster a private address and sends traffic only to healthy pods. The cluster has no public address.' },

@@ -64,7 +64,7 @@ export const en = {
     notifications: 'Notifications', breadcrumbs: 'Breadcrumbs', overflow: 'More', overflowTitle: 'All', overflowBack: 'Back', overflowDismiss: 'Close the menu', external: 'Opens in a new tab',
   },
   inspector: {
-    title: 'Request inspector',
+    title: 'Request Inspector',
     empty: 'No request yet. Do an action in a table, and its path through the cloud shows here.',
   },
   notFound: {
