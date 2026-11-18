@@ -14,6 +14,7 @@ import { InlineRecord } from '../flow/InlineRecord'
 import { tracked } from '../flow/session'
 import type { CallRecord } from '../flow/store'
 import { useShell } from '../shell/context'
+import { bringIntoView, CallWait } from './CallWait'
 import { ContractStatusText, CopyId, Mono } from './common'
 import { Explain } from './Explain'
 import { DataTable, type Column } from './DataTable'
@@ -46,6 +47,9 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
   const [slow, setSlow] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [waitSince, setWaitSince] = useState<number | null>(null)
+  const [answered, setAnswered] = useState(0)
+  const recordRef = useRef<HTMLDivElement>(null)
   const [tab, setTab] = useState('customers')
   const [customerId, setCustomerId] = useState<string | null>(null)
   const [simulationId, setSimulationId] = useState<string | null>(null)
@@ -82,6 +86,9 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
     }
   }, [host])
 
+  // A page action (no dialog open): on a phone the record is out of view, so bring it in when the answer arrives.
+  useEffect(() => { if (answered > 0 && modal === null) bringIntoView(recordRef.current) }, [answered]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     alive.current = true
     void load()
@@ -91,7 +98,10 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
   /** Runs one write (or one traced read), shows the notice and opens the request inspector. */
   async function run<Data>(fn: () => Promise<ApiResult<Data>>, okText: (data: Data) => string): Promise<Data | undefined> {
     setBusy(true)
-    const slowTimer = window.setTimeout(() => notify({ id: 'op', type: 'in-progress', loading: true, content: host === 'aks' ? T.ops.slowAks : T.ops.slow }), 1200)
+    const since = Date.now()
+    setWaitSince(since)
+    // Before the answer the page cannot know why a call is slow: the notice says only that it runs, with the time.
+    const slowTimer = window.setTimeout(() => notify({ id: 'op', type: 'in-progress', loading: true, content: <CallWait since={since} host={host} /> }), 1200)
     try {
       const { res, err, record } = await tracked(fn)
       if (alive.current) setLastCall(record)
@@ -103,7 +113,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
       return undefined
     } finally {
       window.clearTimeout(slowTimer)
-      if (alive.current) setBusy(false)
+      if (alive.current) { setBusy(false); setWaitSince(null); setAnswered((n) => n + 1) }
     }
   }
 
@@ -218,7 +228,8 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
         </Alert>
       )}
       {writeOff && !error && <Alert type="info" header={T.ops.readOnlyTitle}>{writeReason}</Alert>}
-      <InlineRecord record={lastCall} />
+      {waitSince !== null && modal === null && <CallWait since={waitSince} host={host} scroll />}
+      <div ref={recordRef} className="scroll-target"><InlineRecord record={lastCall} /></div>
       <Tabs
         activeTabId={tab}
         onChange={(e) => setTab(e.detail.activeTabId)}
@@ -337,6 +348,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
         <AddCustomerModal
           agreements={agreements}
           busy={busy}
+          wait={waitSince !== null ? <CallWait since={waitSince} host={host} /> : null}
           record={lastCall}
           onDismiss={closeModal}
           onSubmit={async (input) => {
@@ -350,6 +362,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
           customer={customer}
           agreement={agreementOfCustomer}
           busy={busy}
+          wait={waitSince !== null ? <CallWait since={waitSince} host={host} /> : null}
           canWrite={canWrite}
           result={simResult}
           record={lastCall}
@@ -365,6 +378,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
         <IncomeModal
           customer={customer}
           busy={busy}
+          wait={waitSince !== null ? <CallWait since={waitSince} host={host} /> : null}
           margin={margin}
           result={incomeResult}
           record={lastCall}

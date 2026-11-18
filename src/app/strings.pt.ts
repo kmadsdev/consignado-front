@@ -87,6 +87,10 @@ export const ptBR: typeof en = {
     status: 'Status', simulation: 'Simulação', code: 'Código', maxMargin: 'Margem máxima', maxTerm: 'Prazo máximo',
   },
   margin: { limit: 'Limite da margem', committed: 'Comprometida', available: 'Disponível' },
+  wait: {
+    running: 'Chamada em andamento. Tempo:',
+    coldHint: 'Se o host serverless estava ocioso, a primeira chamada leva cerca de 19 s.',
+  },
   ops: {
     tabsLabel: 'Dados compartilhados',
     loading: 'Carregando as tabelas do host',
@@ -99,8 +103,6 @@ export const ptBR: typeof en = {
     refresh: 'Carregar as tabelas de novo',
     readOnlyTitle: 'Somente leitura',
     readOnly: 'Você pode ler os dados, mas não pode alterá-los.',
-    slow: 'A chamada está em andamento. O cold start do host serverless leva cerca de 19 s.',
-    slowAks: 'A chamada está em andamento.',
     failed: 'A API recusou a requisição',
     timing: (time: string, speed: 'cold' | 'slow' | 'warm') => `(${time}, ${speed === 'slow' ? 'chamada lenta' : speed === 'cold' ? 'cold' : 'warm'})`,
     tableLoads: (n: number) => `Leitura das tabelas (${n} requisições)`,
@@ -391,7 +393,6 @@ export const ptBR: typeof en = {
     rateHint: 'Até 5%.',
     income: 'Renda líquida mensal',
     submit: 'Calcular no host serverless',
-    slow: 'Cold start do host serverless: cerca de 19 s.',
     failedTitle: 'O host recusou a requisição',
     installment: 'Parcela',
     total: 'Total a pagar',
