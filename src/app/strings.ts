@@ -486,7 +486,7 @@ export const en = {
     window: {
       title: 'Why the cluster runs only during a window',
       body: [
-        'One AKS node (Standard_D2as_v4) costs US$0.104 per hour. Left on for a month, it costs about US$76, which is more than the US$60 monthly budget of the whole project. So I keep the cluster stopped and start it only for an access window.',
+        'One AKS node (Standard_D2as_v4) costs US$0.104 per hour. Left on for a month, it costs about US$76 (about R$ 418), which is more than the monthly budget of the whole project: R$ 330 (about US$60). So I keep the cluster stopped and start it only for an access window.',
         `A window lasts 15 minutes from the moment the cluster is ready. Each account gets 3 windows. At most 12 new windows start in 24 hours over all accounts. One window costs about US$${windowCostText('.')} of node time, start and stop included.`,
         'When the last open window ends, the gateway stops the cluster through Azure Resource Manager. A 15-minute cool-down follows, because Azure asks for 15 to 30 minutes between a stop and a start. A start in that time is refused with the minutes left.',
         'The gateway uses a managed identity with a custom role that can read, start and stop the cluster. The role has no write and no delete permission.',

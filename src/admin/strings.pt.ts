@@ -92,7 +92,7 @@ export const ptBR: typeof en = {
     stopConfirm: 'Parar o Engine',
     done: 'Estado do Engine alterado.',
     budget: 'Orçamento mensal',
-    budgetHint: (asOf: string) => `Custo do projeto inteiro neste mês. Atualizado ${asOf}.`,
+    budgetHint: (asOf: string) => `Custo do grupo de recursos rg-consignado neste mês, na moeda de cobrança. O orçamento do Azure conta a assinatura inteira. Atualizado ${asOf}.`,
     spent: 'Gasto neste mês',
     spentOf: (spent: string, limit: string) => `${spent} de ${limit}`,
     rule: 'Em 100%, o gateway pausa o Engine, encerra as janelas abertas e desliga o cluster.',
@@ -153,7 +153,7 @@ export const ptBR: typeof en = {
     body: [
       'Pausar liga uma flag no gateway. Novas janelas recebem 409 paused. As janelas abertas vão até o fim, e depois o gateway desliga o cluster. O site e o host serverless continuam.',
       'Parar encerra todas as janelas abertas na hora e pede ao Azure Resource Manager para desligar o cluster. O cool-down de 15 minutos começa quando o Azure informa que o cluster parou.',
-      'O orçamento da assinatura é de US$ 60 por mês. Em 50% e 80% o Azure manda um e-mail. Em 100% um action group do Azure chama um hook do gateway, e o gateway pausa o Engine, encerra as janelas abertas e desliga o cluster. Isso não é um teto rígido: banco de dados, registry, disco do node e IP público custam cerca de US$ 31 a 35 por mês mesmo com o Engine pausado. Você retoma o Engine manualmente.',
+      'O orçamento da assinatura é de R$ 330 por mês (cerca de US$ 60); o Azure cobra esta assinatura em reais. Em 50% e 80% o Azure manda um e-mail. Em 100% um action group do Azure chama um hook do gateway, e o gateway pausa o Engine, encerra as janelas abertas e desliga o cluster. Isso não é um teto rígido: banco de dados, registry, disco do node e IP público custam cerca de US$ 31 a 35 (cerca de R$ 170 a 195) por mês mesmo com o Engine pausado. Você retoma o Engine manualmente.',
       'Uma conta nova com o mesmo fingerprint de dispositivo ou o mesmo e-mail de outra conta fica em análise. O mesmo IP sozinho só gera um alerta, porque um escritório ou uma universidade compartilha um endereço. O gateway guarda o IP e o fingerprint só como hash HMAC-SHA256.',
       'Apagar os dados do usuário remove a linha da conta, as janelas e os pedidos de contato, e encerra uma janela aberta. O log de auditoria guarda um id em hash. A conta de convidado no Entra ID fica até você remover no Entra admin center. Toda ação de admin grava uma linha de auditoria.',
     ],

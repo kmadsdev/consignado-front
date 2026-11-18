@@ -294,14 +294,14 @@ export const ptBR: typeof en = {
         'Visitantes se cadastram com um código de uso único por e-mail e viram contas convidadas restritas no meu tenant do Entra ID.',
         'O Cloudflare Turnstile protege o formulário de contato e o de perfil.',
         'O gateway guarda endereços IP e fingerprints de dispositivo só como HMAC. Uma conta no mesmo dispositivo ou na mesma caixa de e-mail de outra conta espera a minha análise.',
-        'O orçamento mensal é de US$ 60. Em 100%, o gateway pausa o Engine e para o cluster. O site e o host serverless continuam no ar.',
+        'O orçamento mensal é de R$ 330 (cerca de US$ 60). Em 100%, o gateway pausa o Engine e para o cluster. O site e o host serverless continuam no ar.',
         'Uma revisão de segurança independente em 2026-11-17 não achou nenhum problema crítico ou alto. Corrigi os achados médios.',
       ],
       topics: [
         {
           title: 'O que o controle de orçamento para, e o que não para',
           paragraphs: [
-            'Em 50% e 80% dos US$ 60 eu recebo um e-mail. Em 100%, um action group do Azure chama um webhook do gateway, que pausa o Engine e para o cluster. O node ligado é o maior custo variável, e parar não apaga nada.',
+            'Em 50% e 80% dos R$ 330 do orçamento eu recebo um e-mail. Em 100%, um action group do Azure chama um webhook do gateway, que pausa o Engine e para o cluster. O node ligado é o maior custo variável, e parar não apaga nada.',
             'Um orçamento do Azure é um alerta, não um teto rígido. Ele dispara depois que o gasto é registrado, e os custos fixos de banco de dados, registry, disco e IP público continuam. Um banco não para produção por alerta de orçamento. Ele define orçamento por time, com previsão e detecção de anomalias, e paga capacidade adiantado.',
           ],
           links: [{ text: 'ADR 0012: controle de orçamento e limites contra abuso', href: DOCS.adr0012 }],

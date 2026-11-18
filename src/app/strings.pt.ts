@@ -480,7 +480,7 @@ export const ptBR: typeof en = {
     window: {
       title: 'Por que o cluster só roda durante uma janela',
       body: [
-        'Um node AKS (Standard_D2as_v4) custa US$ 0,104 por hora. Ligado o mês inteiro, dá cerca de US$ 76, mais que o orçamento de US$ 60 por mês do projeto todo. Por isso eu deixo o cluster parado e só ligo para uma janela de acesso.',
+        'Um node AKS (Standard_D2as_v4) custa US$ 0,104 por hora. Ligado o mês inteiro, dá cerca de US$ 76 (cerca de R$ 418), mais que o orçamento do projeto todo: R$ 330 por mês (cerca de US$ 60). Por isso eu deixo o cluster parado e só ligo para uma janela de acesso.',
         `Uma janela dura 15 minutos a partir do momento em que o cluster fica pronto. Cada conta tem 3 janelas. No máximo 12 janelas novas começam em 24 horas, somando todas as contas. Uma janela custa cerca de US$ ${windowCostText(',')} de node, contando a inicialização e o desligamento.`,
         'Quando a última janela aberta termina, o gateway desliga o cluster pelo Azure Resource Manager. Depois vem um cool-down de 15 minutos, porque o Azure pede de 15 a 30 minutos entre parar e iniciar um cluster. Um pedido de início nesse intervalo é recusado com os minutos que faltam.',
         'O gateway usa uma managed identity com um papel próprio que só lê, liga e desliga o cluster. O papel não tem permissão de escrita nem de exclusão.',
