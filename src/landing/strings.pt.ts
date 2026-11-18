@@ -40,7 +40,7 @@ export const ptBR: typeof en = {
       primaryAction: 'Fazer uma simulação rápida',
       secondaryAction: 'Entrar para usar o host Kubernetes',
       signInNote:
-        'O login usa o Microsoft Entra ID com um código de uso único enviado ao seu e-mail. Para criar a conta, na página da Microsoft selecione "No account? Create one" e depois "Sign up with email".',
+        'O login usa o Microsoft Entra ID com um código de uso único enviado ao seu e-mail. Para criar a conta, na página da Microsoft selecione "Crie uma!" ao lado de "Não tem uma conta?", depois a opção de se inscrever com o seu e-mail.',
     },
 
     diagram: {

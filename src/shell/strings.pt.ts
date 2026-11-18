@@ -15,6 +15,7 @@ export const ptBR: typeof en = {
     pausedBy: { budget: 'pausado, orçamento atingido', admin: 'pausado pelo responsável' },
     pausedNoNew: 'ligado, sem janelas novas',
   },
+  docTitle: 'Consignado Cloud: API de empréstimo consignado em Spring Boot no Azure Functions ou no AKS',
   metaDescription: 'Uma API de empréstimo consignado no Azure Functions e no AKS, atrás de um gateway Java. O site desenha cada requisição com os tempos medidos. Demonstração técnica, dados sintéticos.',
   lang: { label: 'EN | PT', title: 'Idioma', en: 'English', pt: 'Português (Brasil)' },
   theme: { toDark: 'Modo escuro', toLight: 'Modo claro', title: 'Alternar entre o modo claro e o escuro' },

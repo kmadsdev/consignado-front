@@ -46,9 +46,10 @@ export function clock(ms: number): string {
 export function relativeTime(isoText: string, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - new Date(isoText).getTime()) / 1000))
   if (s < 45) return T.common.justNow
-  if (s < 3600) return RELATIVE.format(-Math.round(s / 60), 'minute')
-  if (s < 86_400) return RELATIVE.format(-Math.round(s / 3600), 'hour')
-  return RELATIVE.format(-Math.round(s / 86_400), 'day')
+  // The short pt-BR form ends with a period ("há 1 min."): drop it, the sentence around it has its own.
+  if (s < 3600) return RELATIVE.format(-Math.round(s / 60), 'minute').replace(/\.$/, '')
+  if (s < 86_400) return RELATIVE.format(-Math.round(s / 3600), 'hour').replace(/\.$/, '')
+  return RELATIVE.format(-Math.round(s / 86_400), 'day').replace(/\.$/, '')
 }
 export function reducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false

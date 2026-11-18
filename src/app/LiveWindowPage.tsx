@@ -16,7 +16,8 @@ import { ApiError, COMPRESSED_START_MS, WINDOW_MINUTES, endSession, getSession, 
 import { AKS_STAGES } from '../api/stages'
 import { useAuth } from '../auth'
 import { POLL } from '../config'
-import { ArchitectureDiagram, LifecycleTimeline } from '../diagram'
+import { localizeDetail } from '../api/details'
+import { ArchitectureDiagram, LifecycleTimeline, stageLine } from '../diagram'
 import { LifecycleReplay } from '../flow/LifecycleReplay'
 import { useShell } from '../shell/context'
 import { CenteredSpinner, CopyId, Gate, Mono, useNow } from './common'
@@ -134,7 +135,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
   const readyNote = !session.compressed && session.coldStartMs !== undefined && session.coldStartMs < 60_000 ? ` (${T.live.alreadyRunning})` : ''
   // After 8 minutes a real start is slower than usual: say so, with the last signal of the gateway.
   const lastSignal = session.events[session.events.length - 1]
-  const slowStart = !session.compressed && now - requestedAt > 8 * 60_000 && lastSignal ? T.live.slowStart(lastSignal.detail ?? lastSignal.stage) : ''
+  const slowStart = !session.compressed && now - requestedAt > 8 * 60_000 && lastSignal ? T.live.slowStart(lastSignal.detail ? localizeDetail(lastSignal.detail) : stageLine(lastSignal.stage, lastSignal.status)) : ''
   const failedStage = [...session.events].reverse().find((e) => e.status === 'error') ?? session.events[session.events.length - 1]
   const windowLength = session.readyAt && session.endedAt ? new Date(session.endedAt).getTime() - new Date(session.readyAt).getTime() : 0
   const stopped = session.events.some((e) => e.stage === 'cluster-stop' && e.status === 'done')
@@ -150,7 +151,7 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
               <KeyValuePairs
                 columns={3}
                 items={[
-                  { label: T.live.failedStage, value: failedStage ? <><Mono>{failedStage.stage}</Mono>{failedStage.detail ? `: ${failedStage.detail}` : ''}</> : '-' },
+                  { label: T.live.failedStage, value: failedStage ? <><Mono>{failedStage.stage}</Mono>{failedStage.detail ? `: ${localizeDetail(failedStage.detail)}` : ''}</> : '-' },
                   { label: T.live.endedAt, value: session.endedAt ? dateTime(session.endedAt) : '-' },
                   { label: T.live.next, value: T.live.nextText(me ? Math.max(0, me.windowsMax - me.windowsUsed) : 0) },
                 ]}
@@ -175,9 +176,10 @@ function LiveWindow({ sessionId }: { sessionId: string }) {
                 <ProgressBar
                   value={startPercent}
                   label={T.live.starting}
-                  description={currentStage?.detail ?? T.live.startingHint}
+                  description={currentStage ? stageLine(currentStage.stage, 'active') : T.live.startingHint}
                   additionalInfo={session.compressed ? T.live.compressedNote : T.live.realStartNote(elapsed, doneStages, START_STAGES.length)}
                 />
+                {currentStage?.detail && <Box fontSize="body-s" color="text-body-secondary"><span className="mono">{localizeDetail(currentStage.detail)}</span></Box>}
                 <Box><Button onClick={() => { setEndProblem(''); setConfirmEnd(true) }}>{T.live.end}</Button></Box>
               </SpaceBetween>
             </Grid>

@@ -13,17 +13,18 @@ import KeyValuePairs from '@cloudscape-design/components/key-value-pairs'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator from '@cloudscape-design/components/status-indicator'
 import Table from '@cloudscape-design/components/table'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError, getSnapshot, previewSimulation, type PreviewResult, type Snapshot } from '../api/client'
 import type { Customer } from '../api/types'
 import { useAuth } from '../auth'
 import { demoAksStartEvents } from '../diagram'
 import { LifecycleReplay } from '../flow/LifecycleReplay'
+import { bringIntoView, CallWait } from './CallWait'
 import { Mono } from './common'
 import { Explain } from './Explain'
 import { DataTable, type Column } from './DataTable'
-import { brl, brlRound, dateTime, duration, percent, relativeTime } from './format'
+import { brl, brlRound, dateTime, decimal, duration, percent, relativeTime } from './format'
 import { RequestFlow, saveRecord, type FlowRecord } from './RequestFlow'
 import { T } from './strings'
 
@@ -41,11 +42,14 @@ export function SimulatePage() {
   const { me, signIn } = useAuth()
   const [principal, setPrincipal] = useState('12000')
   const [months, setMonths] = useState('48')
-  const [rate, setRate] = useState('1.66')
+  // A text field: a number field shows the decimal mark of the browser, not of the page language (F16).
+  const [rate, setRate] = useState(() => decimal(1.66, 2))
   const [income, setIncome] = useState('4200')
   const [touched, setTouched] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [slow, setSlow] = useState(false)
+  const [waitSince, setWaitSince] = useState<number | null>(null)
+  const [answered, setAnswered] = useState(0)
+  const answerRef = useRef<HTMLDivElement>(null)
   const [result, setResult] = useState<PreviewResult | null>(null)
   const [record, setRecord] = useState<FlowRecord | null>(null)
   const [failure, setFailure] = useState('')
@@ -59,6 +63,8 @@ export function SimulatePage() {
     getSnapshot().then((res) => setSnapshot(res.data)).catch(() => setSnapshotFailed(true))
   }
   useEffect(loadSnapshot, [])
+  // On a phone the answer is below the button: bring it into view when it arrives.
+  useEffect(() => { if (answered > 0) bringIntoView(answerRef.current) }, [answered])
   useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(saved)) } catch { /* ignore */ } }, [saved])
 
   const p = toNumber(principal), m = Number(months), r = toNumber(rate), i = toNumber(income)
@@ -73,8 +79,7 @@ export function SimulatePage() {
   const submit = async () => {
     setTouched(true)
     if (!valid || busy) return
-    setBusy(true); setFailure(''); setSlow(false)
-    const slowTimer = window.setTimeout(() => setSlow(true), 1200)
+    setBusy(true); setFailure(''); setWaitSince(Date.now())
     const started = performance.now()
     try {
       const res = await previewSimulation({ principal: p, termMonths: m, monthlyInterestRate: r / 100, monthlyIncome: i })
@@ -85,7 +90,7 @@ export function SimulatePage() {
       setFailure(err instanceof Error ? err.message : T.common.failed)
       if (err instanceof ApiError && err.trace) setRecord(saveRecord({ label: err.label ?? '', trace: err.trace, ok: false, message: err.message, at: Date.now(), browserMs: Math.round(performance.now() - started), status: err.status, code: err.code }))
     } finally {
-      window.clearTimeout(slowTimer); setBusy(false); setSlow(false)
+      setBusy(false); setWaitSince(null); setAnswered((n) => n + 1)
     }
   }
 
@@ -120,7 +125,7 @@ export function SimulatePage() {
                     <Input value={months} onChange={(e) => setMonths(e.detail.value)} type="number" inputMode="numeric" />
                   </FormField>
                   <FormField label={T.guest.rate} description={T.guest.rateHint} errorText={touched ? errors.rate : ''}>
-                    <Input value={rate} onChange={(e) => setRate(e.detail.value)} type="number" inputMode="decimal" step={0.01} />
+                    <Input value={rate} onChange={(e) => setRate(e.detail.value)} inputMode="decimal" />
                   </FormField>
                   <FormField label={T.guest.income} description={T.common.brlHint} errorText={touched ? errors.income : ''}>
                     <Input value={income} onChange={(e) => setIncome(e.detail.value)} type="number" inputMode="decimal" />
@@ -128,8 +133,9 @@ export function SimulatePage() {
                 </ColumnLayout>
                 <SpaceBetween size="s" direction="horizontal" alignItems="center">
                   <Button variant="primary" loading={busy}>{T.guest.submit}</Button>
-                  {slow && <StatusIndicator type="in-progress">{T.guest.slow}</StatusIndicator>}
                 </SpaceBetween>
+                {waitSince !== null && <CallWait since={waitSince} host="functions" scroll />}
+                <div ref={answerRef} className="scroll-target">
                 {Boolean(failure) && <Alert type="error" header={T.guest.failedTitle}>{failure}</Alert>}
                 {result && !failure && (
                   <SpaceBetween size="s">
@@ -147,6 +153,7 @@ export function SimulatePage() {
                       : <StatusIndicator type="warning">{T.guest.noFit}</StatusIndicator>}
                   </SpaceBetween>
                 )}
+                </div>
               </SpaceBetween>
             </form>
           </Container>

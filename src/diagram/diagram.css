@@ -71,7 +71,8 @@
 .dg-root .react-flow__node-svc { cursor: pointer; border-radius: 10px; }
 .dg-root .react-flow__node-svc:focus-visible { outline: 2px solid var(--dg-active); outline-offset: 4px; }
 .dg-root .react-flow__node-svc:focus:not(:focus-visible) { outline: none; }
-.dg-root .react-flow__attribution { background: transparent; font-size: 9px; opacity: 0.55; }
+.dg-root .react-flow__attribution { background: transparent; font-size: 10px; }
+.dg-root .react-flow__attribution a { color: var(--dg-muted); }
 .dg-root .react-flow__controls { box-shadow: none; border: 1px solid var(--dg-pop-border); border-radius: 6px; overflow: hidden; }
 .dg-root .react-flow__controls-button { background: var(--dg-pop-bg); color: var(--dg-text); fill: var(--dg-text); border-bottom-color: var(--dg-pop-border); }
 
@@ -83,7 +84,8 @@
 .dg-label { margin-top: 7px; font-size: 14px; line-height: 18px; font-weight: 600; white-space: nowrap; color: var(--dg-text); }
 .dg-sub { font-size: 12px; line-height: 15px; white-space: nowrap; color: var(--dg-muted); }
 .dg-st-pending.dg-svc .dg-icon > img, .dg-st-pending.dg-svc .dg-icon > svg.dg-glyph { opacity: 0.42; filter: grayscale(0.7); }
-.dg-st-pending.dg-svc .dg-label, .dg-st-pending.dg-svc .dg-sub { opacity: 0.6; }
+/* Pending text keeps a contrast of 4.5:1 or more: a muted colour, no opacity (F11). */
+.dg-st-pending.dg-svc .dg-label { color: var(--dg-muted); }
 
 .dg-icon::before { content: ''; position: absolute; inset: -5px; border-radius: 12px; pointer-events: none; }
 .dg-st-active .dg-icon::before { background: var(--dg-active-soft); box-shadow: 0 0 0 1.5px var(--dg-active); }
@@ -112,7 +114,7 @@
 .dg-group .dg-pill { position: static; margin-left: 2px; }
 .dg-group.dg-st-active { border-color: var(--dg-active); border-style: solid; animation: dg-box 1.7s ease-in-out infinite; }
 .dg-group.dg-st-active > .dg-group-label { color: var(--dg-active); }
-.dg-group.dg-st-pending { opacity: 0.6; }
+.dg-group.dg-st-pending { border-style: dashed; }
 @keyframes dg-box {
   0%, 100% { box-shadow: 0 0 0 0 var(--dg-active-soft); }
   50% { box-shadow: 0 0 0 5px var(--dg-active-soft); }
@@ -139,7 +141,7 @@
 .dg-edge-label { position: absolute; padding: 1px 5px; border-radius: 4px; background: var(--dg-bg); color: var(--dg-muted); font-size: 12px; line-height: 15px; white-space: nowrap; pointer-events: none; }
 .dg-edge-label.dg-k-trust { color: var(--dg-trust); }
 .dg-edge-label.dg-k-deploy { color: var(--dg-deploy); }
-.dg-edge-label.dg-e-pending { opacity: 0.6; }
+.dg-edge-label.dg-e-pending { color: var(--dg-muted); }
 .dg-edge-label.dg-e-active { color: var(--dg-active); }
 .dg-edge-label.dg-e-done { color: var(--dg-done); }
 
@@ -198,3 +200,8 @@
 .dg-pop-live-row dt { color: var(--dg-muted); }
 .dg-pop-live-row dd { margin: 0; font-family: var(--dg-mono); font-size: 11.5px; overflow-wrap: anywhere; }
 
+
+/* Phone layout of the overview (scale about 0.9): small texts a little larger, so they stay at 11 px or more on screen. */
+.dg-narrow .dg-sub, .dg-narrow .dg-edge-label, .dg-narrow .dg-group-label, .dg-narrow .dg-legend-row { font-size: 13.5px; }
+.dg-narrow .dg-group-label { right: 8px; white-space: normal; }
+.dg-narrow .react-flow__pane { touch-action: pan-y; }

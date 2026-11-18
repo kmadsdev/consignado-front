@@ -10,7 +10,7 @@ import { initialTheme, setTheme } from './shell/theme'
 // Before the first paint, so the page does not flash in the wrong mode.
 setTheme(initialTheme(), false)
 // `<html lang>` and the description follow the language of the page.
-applyDocumentLang(S.metaDescription)
+applyDocumentLang(S.metaDescription, S.docTitle)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -6,7 +6,7 @@ import { ApiError } from '../errors.ts'
 import { toContract } from '../map.ts'
 import { StaleVersionError, changeWithVersion, checkIfMatch, etagOf, forgetEtags, knownEtag, rememberEtag } from '../versions.ts'
 
-const messages = { stale: 'This contract changed since you loaded it. I loaded the current state; check it and try again.', missing: 'missing' }
+const messages = { stale: 'This contract changed since you loaded it. The table now shows its current state. Check it and try again.', missing: 'missing' }
 const row = (version, status = 'PENDING') => ({ id: 'k1', customerId: 'c1', simulationId: 's1', status, principal: 1000, termMonths: 12, installment: 100, createdAt: '2026-11-17T08:05:00Z', etag: `"${version}"` })
 const trace = { host: 'functions', cold: false, totalMs: 40, events: [] }
 

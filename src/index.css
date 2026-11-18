@@ -29,3 +29,6 @@ body { margin: 0; }
 
 .diagram-frame { min-width: 0; overflow: hidden; }
 .turnstile-box { border: 1px dashed rgba(128, 134, 148, 0.7); border-radius: 8px; padding: 14px 16px; max-width: 320px; }
+
+/* A wait state or an answer that the page brings into view: keep it clear of the sticky top bar. */
+.scroll-target, .call-wait { scroll-margin-top: 72px; scroll-margin-bottom: 24px; }

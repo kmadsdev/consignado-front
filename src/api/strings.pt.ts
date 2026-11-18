@@ -19,7 +19,7 @@ export const ptBR: typeof en = {
       ? `O cluster parou há menos de 15 minutos, e o Azure pede um intervalo entre parar e iniciar. Tente de novo em ${minutes} min.`
       : 'O cluster parou há menos de 15 minutos, e o Azure pede um intervalo entre parar e iniciar. Tente de novo em alguns minutos.',
   conflict: 'Os dados mudaram enquanto esta requisição rodava. Carregue os dados de novo e tente outra vez.',
-  staleVersion: 'Este contrato mudou desde que você o carregou. Carreguei o estado atual; confira e tente de novo.',
+  staleVersion: 'Este contrato mudou desde que você o carregou. A tabela agora mostra o estado atual. Confira e tente de novo.',
   versionMissing: 'Esta mudança precisa da versão do contrato, e a requisição não tinha nenhuma. Carreguei o contrato de novo; tente de novo.',
   notFound: 'Este item não existe.',
   tooLarge: 'A requisição é grande demais.',
@@ -36,5 +36,24 @@ export const ptBR: typeof en = {
   },
   trace: {
     noTrace: 'o gateway não mandou trace para esta chamada',
+  },
+  problem: {
+    marginExceeded: (installment: string, available: string) => `A parcela de ${installment} passa da margem disponível de ${available}. Use um valor menor ou um prazo maior.`,
+    incomeBelowMargin: (limit: string, committed: string) => `Com esta renda, o limite da margem fica em ${limit}. Os contratos aprovados e ativos já usam ${committed} por mês, então a API manteve a renda atual.`,
+    transition: (from: string, to: string) => `O contrato está ${from}, e a máquina de estados não permite a mudança para ${to}.`,
+    termAboveAgreement: (months: string) => months ? `O convênio permite no máximo ${months} meses. Use um prazo menor.` : 'O prazo passa do limite do convênio. Use um prazo menor.',
+    termTooLong: 'Com este valor e esta taxa, a parcela arredondada em centavos quita o empréstimo antes do último mês. Use um prazo menor ou um valor maior.',
+    customerExists: 'Já existe um cliente com este CPF.',
+    agreementMissing: 'O convênio não existe.',
+    customerMissing: 'O cliente não existe.',
+    simulationMissing: 'A simulação não existe.',
+    simulationExpired: 'A simulação expirou. Simule de novo.',
+    simulationUsed: 'Esta simulação já tem um contrato.',
+    agreementCodeTaken: 'Já existe um convênio com este código.',
+    invalidCpf: 'O CPF não é válido.',
+    idempotencyReused: 'Esta Idempotency-Key já foi usada para outra simulação.',
+    dataConflict: 'A requisição entra em conflito com dados que já existem.',
+    fields: (names: string) => `A API recusou estes campos: ${names}. Corrija e tente de novo.`,
+    status: { PENDING: 'Pendente', APPROVED: 'Aprovado', REJECTED: 'Recusado', ACTIVE: 'Ativo', SETTLED: 'Quitado', CANCELLED: 'Cancelado' } as Record<string, string>,
   },
 }
