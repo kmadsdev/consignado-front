@@ -284,7 +284,7 @@ export const ptBR: typeof en = {
     whatStarts: 'O que liga',
     whatStartsText: 'O control plane do AKS, 1 VM de nó, 2 pods da API Spring Boot e o load balancer interno.',
     coldStart: 'Cold start',
-    coldStartText: 'Cerca de 7 minutos. Medido: 7 min 13 s.',
+    coldStartText: 'Cerca de 7 minutos. Medido: 7\u00a0min 13\u00a0s.',
     window: 'Janela',
     windowText: (minutes: number) => `${minutes} minutos. A contagem começa quando o cluster fica pronto, não quando você clica.`,
     cost: 'Custo para mim',
