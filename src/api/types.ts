@@ -94,7 +94,11 @@ export interface Customer { id: string; agreementId: string; name: string; cpf: 
 export interface Margin { customerId: string; monthlyIncome: number; marginLimit: number; committed: number; available: number }
 export interface Simulation { id: string; customerId: string; principal: number; termMonths: number; installment: number; totalAmount: number; monthlyInterestRate: number; expiresAt: string }
 export type ContractStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'SETTLED' | 'CANCELLED'
-export interface Contract { id: string; customerId: string; simulationId: string; status: ContractStatus; principal: number; termMonths: number; installment: number; createdAt: string }
+export interface Contract {
+  id: string; customerId: string; simulationId: string; status: ContractStatus; principal: number; termMonths: number; installment: number; createdAt: string
+  /** The version of the API row as an entity tag (`"3"`), for `If-Match` on a state change. */
+  etag?: string
+}
 
 // ---- admin ------------------------------------------------------------------
 export interface AdminUser extends Me { company: string; linkedin: string; createdAt: string; lastSeenAt: string; flags: Array<'same-device' | 'same-ip' | 'disposable-email' | 'same-mailbox'> }
