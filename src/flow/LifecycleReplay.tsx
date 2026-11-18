@@ -12,6 +12,7 @@ import { LOCALE } from '../i18n/lang.ts'
 import { lifecycleEventsAt, lifecycleRun, type LifeRun } from './model'
 import { F } from './strings'
 import { Transport, useReplay } from './Transport'
+import { DetailText } from './DetailText'
 
 /** The stages of a cluster start: everything before the countdown, plus the moment the window opens. */
 export const START_STAGES: readonly string[] = AKS_STAGES.slice(0, AKS_STAGES.indexOf('window-open') + 1)
@@ -59,7 +60,7 @@ export function LifecycleChecklist({ run, pos }: { run: LifeRun; pos: number }) 
         { id: 'ts', header: I.colTs, cell: (s) => <span className="mono">{clock.format(new Date(run.t0 + s.start))}</span>, width: 104 },
         { id: 'start', header: D.colStart, cell: (s) => <span className="mono">+{duration(s.start)}</span>, width: 112 },
         { id: 'ms', header: D.colDuration, cell: (s) => <span className="mono">{s.ms !== undefined ? duration(s.ms) : '-'}</span>, width: 112 },
-        { id: 'detail', header: D.colDetail, cell: (s) => <Box fontSize="body-s" color="text-body-secondary">{s.detail ?? '-'}</Box>, minWidth: 200 },
+        { id: 'detail', header: D.colDetail, cell: (s) => <DetailText raw={s.detail} />, minWidth: 200 },
       ]}
     />
   )

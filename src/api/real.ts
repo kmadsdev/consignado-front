@@ -14,6 +14,7 @@ import type {
   ActivityItem, AdminSession, AdminUserAction, ApiResult, ContactInput, ContractAction, CustomerInput, HostStatus, IncomeResult,
   PreviewInput, PreviewResult, SessionView, SimulationInput, SimulationResult, Snapshot,
 } from './mock'
+import { knownProblemText, type ProblemBody } from './problems'
 import { E } from './strings'
 import { changeWithVersion, rememberEtag } from './versions'
 import type { AdminState, AdminUser, Agreement, ContactRequest, Contract, Customer, Engine, HostKind, Margin, Me, PlatformStatus, Profile, RequestTrace, Session, Simulation } from './types'
@@ -41,7 +42,8 @@ function measuredTrace(host: HostKind, label: string, ms: number, status: number
 
 function toError(status: number, body: ApiProblem | null, trace: RequestTrace | null, retryAfter: number, label: string): ApiError {
   const code = body?.code
-  const text = problemText(body)
+  // A known API refusal gets the frontend's own text with the numbers of the body. Else the API's own text.
+  const text = knownProblemText(body as ProblemBody | null) || problemText(body)
   let message: string
   if (status === 401) message = code === 'invalid-token' ? E.invalidToken : E.unauthorized
   else if (status === 403) message = code === 'blocked' ? E.blocked : code === 'no-session' ? E.noSession : code === 'bot-check-failed' ? E.botCheck : E.forbidden

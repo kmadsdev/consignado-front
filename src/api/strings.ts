@@ -39,6 +39,26 @@ export const en = {
   trace: {
     noTrace: 'the gateway sent no trace for this call',
   },
+  /** API refusals (problem+json `code`). Amounts come already formatted. */
+  problem: {
+    marginExceeded: (installment: string, available: string) => `The installment of ${installment} is above the available margin of ${available}. Use a lower amount or a longer term.`,
+    incomeBelowMargin: (limit: string, committed: string) => `With this income the margin limit is ${limit}. The approved and active contracts already take ${committed} per month, so the API kept the current income.`,
+    transition: (from: string, to: string) => `The contract is ${from}, and the state machine does not allow a change to ${to}.`,
+    termAboveAgreement: (months: string) => months ? `The agreement allows at most ${months} months. Use a shorter term.` : 'The term is longer than the agreement allows. Use a shorter term.',
+    termTooLong: 'At this amount and rate, the installment rounded to cents pays the loan off before the last month. Use a shorter term or a larger amount.',
+    customerExists: 'A customer with this CPF exists already.',
+    agreementMissing: 'The agreement does not exist.',
+    customerMissing: 'The customer does not exist.',
+    simulationMissing: 'The simulation does not exist.',
+    simulationExpired: 'The simulation expired. Simulate again.',
+    simulationUsed: 'This simulation has a contract already.',
+    agreementCodeTaken: 'An agreement with this code exists already.',
+    invalidCpf: 'The CPF is not valid.',
+    idempotencyReused: 'This Idempotency-Key was used before for a different simulation.',
+    dataConflict: 'The request conflicts with data that exists already.',
+    fields: (names: string) => `The API refused these fields: ${names}. Correct them, then try again.`,
+    status: { PENDING: 'Pending', APPROVED: 'Approved', REJECTED: 'Rejected', ACTIVE: 'Active', SETTLED: 'Settled', CANCELLED: 'Cancelled' } as Record<string, string>,
+  },
 }
 
 export const E = pick(en, ptBR)

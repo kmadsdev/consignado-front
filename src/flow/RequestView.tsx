@@ -19,6 +19,7 @@ import { buildOf, podsOf, serviceOf } from './status'
 import type { CallRecord } from './store'
 import { F } from './strings'
 import { Transport, useReplay } from './Transport'
+import { DetailText } from './DetailText'
 
 const STATUS_TYPE: Record<string, StatusIndicatorProps.Type> = { done: 'success', error: 'error', active: 'in-progress', pending: 'pending' }
 const AUTO_WALL_MS = 3000
@@ -141,7 +142,7 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
               return <span className="fl-share" style={FLOW_VARS}><span className="fl-share-bar" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span><span className="mono">{decimal(pct, 0)}%</span></span>
             },
           },
-          { id: 'detail', header: D.colDetail, minWidth: 200, cell: (s) => <Box fontSize="body-s" color={s.status === 'error' ? 'text-status-error' : 'text-body-secondary'}>{s.detail ?? '-'}</Box> },
+          { id: 'detail', header: D.colDetail, minWidth: 200, cell: (s) => <DetailText main={s.status === 'error' ? F.stageFailed : F.stageDetail[s.stage]} raw={s.detail} error={s.status === 'error'} /> },
         ]}
       />
       <SpaceBetween size="xs">
