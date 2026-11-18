@@ -19,7 +19,7 @@ export const ptBR: typeof en = {
       ? `O cluster parou há menos de 15 minutos, e o Azure pede um intervalo entre parar e iniciar. Tente de novo em ${minutes} min.`
       : 'O cluster parou há menos de 15 minutos, e o Azure pede um intervalo entre parar e iniciar. Tente de novo em alguns minutos.',
   conflict: 'Os dados mudaram enquanto esta requisição rodava. Carregue os dados de novo e tente outra vez.',
-  staleVersion: 'Este contrato mudou desde que você o carregou. Carreguei o estado atual; confira e tente de novo.',
+  staleVersion: 'Este contrato mudou desde que você o carregou. A tabela agora mostra o estado atual. Confira e tente de novo.',
   versionMissing: 'Esta mudança precisa da versão do contrato, e a requisição não tinha nenhuma. Carreguei o contrato de novo; tente de novo.',
   notFound: 'Este item não existe.',
   tooLarge: 'A requisição é grande demais.',

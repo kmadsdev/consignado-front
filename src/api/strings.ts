@@ -21,7 +21,7 @@ export const en = {
       ? `The cluster stopped less than 15 minutes ago, and Azure needs a pause between a stop and a start. Try again in ${minutes} min.`
       : 'The cluster stopped less than 15 minutes ago, and Azure needs a pause between a stop and a start. Try again in a few minutes.',
   conflict: 'The data changed while this request ran. Load the data again, then try again.',
-  staleVersion: 'This contract changed since you loaded it. I loaded the current state; check it and try again.',
+  staleVersion: 'This contract changed since you loaded it. The table now shows its current state. Check it and try again.',
   versionMissing: 'This change needs the version of the contract, and the request had none. I loaded the contract again; try again.',
   notFound: 'This item does not exist.',
   tooLarge: 'The request is too large.',
