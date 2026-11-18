@@ -13,7 +13,9 @@ export interface Env {
 const MAX_BODY_BYTES = 64 * 1024
 const API_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH'])
 // Request headers that the gateway needs. Everything else stays at the edge.
-const FORWARD = ['accept', 'accept-language', 'authorization', 'content-type', 'idempotency-key', 'x-fingerprint']
+// if-match / if-none-match carry the contract version (ETag) for the API's optimistic concurrency.
+const FORWARD = ['accept', 'accept-language', 'authorization', 'content-type', 'idempotency-key', 'if-match',
+  'if-none-match', 'x-fingerprint']
 
 const CSP = [
   "default-src 'self'",
@@ -74,6 +76,8 @@ async function api(request: Request, url: URL, env: Env): Promise<Response> {
   } catch {
     return json(502, 'gateway-unreachable', 'The gateway did not answer.')
   }
+  // Every gateway response header goes on (etag and location included), except cookies.
+  // no-store wins over an ETag: an API answer is never cached by the edge or the browser.
   const out = secure(new Headers(upstream.headers))
   out.set('cache-control', 'no-store')
   out.delete('set-cookie')
