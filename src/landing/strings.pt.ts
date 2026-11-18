@@ -21,7 +21,7 @@ export const ptBR: typeof en = {
       tagline:
         'Uma API de empréstimo consignado que roda no Azure Functions e no AKS, atrás de um único gateway. O site desenha cada requisição que você envia, com o tempo medido de cada etapa.',
       about:
-        'Demonstração técnica de Kaique Souza, engenheiro backend. Escrevi a API de empréstimo, o gateway Java na frente dela, o Terraform do Azure e este site. As telas de empréstimo enviam requisições reais, e você acompanha cada uma pelo edge, pela validação do token, pelo host e pelo banco.',
+        'Demonstração técnica de Kaique Souza, engenheiro backend. Os três repositórios abaixo têm a API de empréstimo, o gateway Java na frente dela, o Terraform do Azure e este site. As telas de empréstimo enviam requisições reais, e você acompanha cada uma pelo edge, pela validação do token, pelo host e pelo banco.',
       sourceLabel: 'Código-fonte',
       repos: [
         { name: 'kmadsdev/consignado-api', href: 'https://github.com/kmadsdev/consignado-api' },
