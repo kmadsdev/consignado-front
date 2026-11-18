@@ -10,6 +10,7 @@ import { requestStore, type NewRecord } from '../flow/session'
 import { usePlatformStatus } from '../flow/status'
 import type { CallRecord } from '../flow/store'
 import { Mono, useNow } from './common'
+import { Explain } from './Explain'
 import { decimal } from './format'
 import { T } from './strings'
 
@@ -83,6 +84,7 @@ export function RequestFlow({ host, record }: { host: HostKind; record: FlowReco
           ]}
         />
       )}
+      {!live.unavailable && <Explain text={T.explain.status} variant="default" />}
     </SpaceBetween>
   )
 }

@@ -28,6 +28,7 @@ import { CopyId, EngineStatus, Gate, Mono } from '../app/common'
 import { DataTable, type Column } from '../app/DataTable'
 import { dateTime, duration, relativeTime, usd } from '../app/format'
 import { useShell } from '../shell/context'
+import { Explain } from '../app/Explain'
 import { A } from './strings'
 import { WINDOW_COST_USD } from '../app/cost'
 
@@ -327,6 +328,7 @@ function Admin() {
             },
           ]}
         />
+        <Explain text={A.explain} variant="container" />
       </SpaceBetween>
 
       {modal === 'delete' && user && (

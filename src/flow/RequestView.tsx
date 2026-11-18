@@ -10,6 +10,7 @@ import Table from '@cloudscape-design/components/table'
 import { useMemo } from 'react'
 import { speedOf } from '../api/map'
 import type { PlatformStatus } from '../api/types'
+import { Explain } from '../app/Explain'
 import { decimal, duration } from '../app/format'
 import { T as AppT } from '../app/strings'
 import { FlowDiagram, FLOW_VARS } from './FlowDiagram'
@@ -40,6 +41,7 @@ export function RequestFlowView({ record, status }: { record: CallRecord; status
       <FlowDiagram model={model} pos={replay.pos} status={status} label={record.label} dbDetail={model.db ? <DbBlock db={model.db} status={status} compact /> : undefined} edgeNetworkMs={record.browserMs !== undefined ? Math.max(0, record.browserMs - record.trace.totalMs) : undefined} />
       <Transport replay={replay} />
       {!model.db && <Box color="text-body-secondary" fontSize="body-s">{model.detailed ? F.noDatabase : `${F.noDatabase} ${F.oldTrace}`}</Box>}
+      <Explain text={F.explain.trace} variant="default" />
     </SpaceBetween>
   )
 }
@@ -145,6 +147,7 @@ export function RequestDetail({ record, status }: { record: CallRecord; status?:
       <SpaceBetween size="xs">
         <Box variant="h3">{F.db.title}</Box>
         {model.db ? <DbBlock db={model.db} status={status} /> : <Box color="text-body-secondary">{F.db.none}</Box>}
+        {model.db && <Explain text={F.explain.db} variant="default" />}
       </SpaceBetween>
       <CopyToClipboard variant="button" copyButtonText={D.copy} textToCopy={JSON.stringify({ label: record.label, status: record.status, browserMs: record.browserMs, trace }, null, 2)} copySuccessText={D.copied} copyErrorText={D.copyFailed} />
     </SpaceBetween>
