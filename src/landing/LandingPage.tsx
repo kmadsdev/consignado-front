@@ -104,6 +104,22 @@ function Section({ title, description, children, topics, links }: { title: strin
   )
 }
 
+const CONTACT_ID = 'contact'
+
+/** Scrolls to the contact form and moves keyboard focus there. */
+function focusContact() {
+  const section = document.getElementById(CONTACT_ID)
+  if (!section) return
+  section.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  section.focus({ preventScroll: true })
+}
+
+function goToContact(event: { preventDefault: () => void }) {
+  event.preventDefault()
+  window.history.replaceState(window.history.state, '', `#${CONTACT_ID}`)
+  focusContact()
+}
+
 function PageHeader() {
   const follow = useFollow()
   return (
@@ -112,7 +128,13 @@ function PageHeader() {
         {t.header.title}
       </Header>
       <Prose>
-        <Box variant="p">{t.header.about}</Box>
+        <Box variant="p">
+          {t.header.aboutBefore}
+          <Link href={t.header.author.href} external>
+            {t.header.author.text}
+          </Link>
+          {t.header.aboutAfter}
+        </Box>
       </Prose>
       <SpaceBetween size="xs" direction="horizontal" alignItems="center">
         <Box color="text-body-secondary">{t.header.sourceLabel}:</Box>
@@ -124,6 +146,19 @@ function PageHeader() {
           </Link>
         ))}
       </SpaceBetween>
+      <Prose>
+        <Box variant="p">
+          {t.header.access.account} {t.header.access.contactBefore}
+          <Link href={`#${CONTACT_ID}`} onFollow={goToContact}>
+            {t.header.access.contactLink}
+          </Link>
+          . {t.header.access.guestBefore}
+          <Link href={t.header.access.guestLink.href} external>
+            {t.header.access.guestLink.text}
+          </Link>
+          .
+        </Box>
+      </Prose>
       <SpaceBetween size="xs" direction="horizontal">
         <Button variant="primary" href={ROUTES.simulate} onFollow={follow}>
           {t.header.primaryAction}
@@ -285,7 +320,7 @@ export interface LandingPageProps {
 
 export function LandingPage({ onContactSubmit }: LandingPageProps) {
   useEffect(() => {
-    if (window.location.hash === '#contact') document.getElementById('contact')?.scrollIntoView()
+    if (window.location.hash === `#${CONTACT_ID}`) focusContact()
   }, [])
 
   return (
@@ -321,7 +356,7 @@ export function LandingPage({ onContactSubmit }: LandingPageProps) {
             <List items={t.limits.items} />
           </Section>
           <StackSection />
-          <div id="contact">
+          <div id={CONTACT_ID} tabIndex={-1} style={{ outline: 'none', scrollMarginTop: 16 }}>
             <Container
               header={
                 <Header variant="h2" description={t.contact.description}>
