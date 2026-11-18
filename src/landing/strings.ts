@@ -53,9 +53,18 @@ const landingEn = {
   header: {
     title: 'Consignado Cloud',
     tagline:
-      'A payroll-loan API that runs on Azure Functions and on AKS, behind one gateway. The site draws each request you send, with the measured time of every step.',
-    about:
-      'A technical demo by Kaique Souza, backend engineer. The three repositories below hold the loan API, the Java gateway in front of it, the Terraform for Azure and this site. The loan screens send real requests. You can follow each one through the edge, the token check, the host and the database.',
+      'A Spring Boot payroll loan API that runs on Azure Functions or AKS, behind one gateway. The site draws each request you send with the measured time of every step, and tracks the whole lifecycle of the request inside Azure. The requests are real, not a simulation: an interactive chart shows each one from end to end.',
+    aboutBefore: 'A technical demo by ',
+    author: { text: 'Kmads', href: 'https://github.com/kmadsdev' },
+    aboutAfter:
+      '. Three repositories hold the loan API (Spring Boot), the Java gateway in front of it, the Terraform for Azure and this website (React). The loan screens send real requests. You can follow each one through the edge, the token check, the host and the database.',
+    access: {
+      account: 'You must create an account to use the AKS flow. Each account gets three free 15-minute windows to start and test the engine.',
+      contactBefore: 'To get more windows or to suggest a change to the architecture, ',
+      contactLink: 'contact me here',
+      guestBefore: 'Guests can use only the ',
+      guestLink: { text: 'serverless loan preview', href: DOCS.accessLevels },
+    },
     sourceLabel: 'Source code',
     repos: [
       { name: 'kmadsdev/consignado-api', href: 'https://github.com/kmadsdev/consignado-api' },
@@ -65,7 +74,7 @@ const landingEn = {
     primaryAction: 'Try a loan preview',
     secondaryAction: 'Sign in to use the Kubernetes host',
     signInNote:
-      'The preview needs no account. Sign-in uses Microsoft Entra ID with a one-time code sent to your email. To make an account, select "No account? Create one" on the Microsoft page, then "Sign up with email".',
+      'Sign-in uses Microsoft Entra ID with a one-time code sent to your email. To make an account, select "No account? Create one" on the Microsoft page, then "Sign up with email".',
   },
 
   diagram: {
@@ -136,8 +145,8 @@ const landingEn = {
   },
 
   hosts: {
-    title: 'Two hosts, one jar',
-    description: 'The same Spring Boot 3.5 build runs on both, behind the same gateway, against the same database.',
+    title: 'Two hosts',
+    description: 'The same build artifact, an executable Spring Boot 3.5 JAR, runs on both, behind the same gateway, against the same database.',
     functions: {
       title: 'Azure Functions',
       subtitle: 'Serverless host',
@@ -168,9 +177,9 @@ const landingEn = {
     },
     topics: [
       {
-        title: 'Why the same jar runs on two hosts',
+        title: 'Why the same build artifact runs on two hosts',
         paragraphs: [
-          'A comparison of Kubernetes and serverless is fair only when both run the same program. On Azure Functions the jar runs as a custom handler. The Functions host starts a Java runtime that I build with jlink and a CDS archive. It forwards each HTTP request to Spring Boot. CI tests one artifact, and both hosts run that artifact.',
+          'A comparison of Kubernetes and serverless is fair only when both run the same program. On Azure Functions the build artifact runs as a custom handler. The Functions host starts a Java runtime that I build with jlink and a CDS archive. It forwards each HTTP request to Spring Boot. CI tests one artifact, and both hosts run that artifact.',
           'The cost is two deploy paths to keep working, and a 129 MB package whose Java runtime only a new build can patch. The outbox relay runs only on AKS, so an event written on the serverless host waits for a running pod.',
           'A bank would pick one host per service from load and cost data, and keep one deploy path.',
         ],
@@ -368,7 +377,7 @@ const landingEn = {
       'consignado-serverless: the gateway, with 156 tests, and the package of the serverless host.',
       'consignado-front: this site, built and copied to Blob Storage by GitHub Actions.',
       'Terraform describes every Azure resource. The remote state is in a storage account that accepts Entra ID sign-in only.',
-      'The request inspector links each request to the commit of the image that answered it.',
+      'The Request Inspector links each request to the commit of the image that answered it.',
     ],
     links: [
       { text: 'Terraform README', href: DOCS.terraform },
