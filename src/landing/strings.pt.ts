@@ -134,7 +134,7 @@ export const ptBR: typeof en = {
         {
           title: 'Por que o mesmo jar roda em dois hosts',
           paragraphs: [
-            'Comparar Kubernetes e serverless só é justo quando os dois rodam o mesmo programa. No Azure Functions o jar roda como custom handler: o host do Functions inicia um runtime Java que eu gero com jlink e um arquivo CDS, e repassa cada requisição HTTP para o Spring Boot. O CI testa um artefato, e os dois hosts rodam esse artefato.',
+            'Comparar Kubernetes e serverless só é justo quando os dois rodam o mesmo programa. No Azure Functions o jar roda como custom handler. O host do Functions inicia um runtime Java que eu gero com jlink e um arquivo CDS. Ele repassa cada requisição HTTP para o Spring Boot. O CI testa um artefato, e os dois hosts rodam esse artefato.',
             'O custo são dois caminhos de deploy para manter funcionando e um pacote de 129 MB cujo runtime Java só um build novo atualiza. O relay do outbox roda só no AKS, então um evento gravado no host serverless espera um pod ligado.',
             'Um banco escolheria um host por serviço a partir de dados de carga e custo, com um caminho de deploy só.',
           ],
@@ -157,10 +157,17 @@ export const ptBR: typeof en = {
         {
           title: 'Janelas de acesso e cool-down',
           paragraphs: [
-            'O gateway mostra cada etapa da inicialização a partir de sinais reais: o power state do Azure Resource Manager, as conditions dos pods, os endpoints do Service e um GET /actuator/health/readiness pelo load balancer interno. A janela abre quando essa chamada responde 200 e dura 15 minutos a partir daí.',
+            'O gateway mostra cada etapa da inicialização a partir de sinais reais:',
+            'A janela abre quando essa chamada de readiness responde 200 e dura 15 minutos a partir daí.',
             'Cada conta tem 3 janelas, e a janela só conta quando abre, então uma inicialização que falha não custa nada ao usuário. Posso mudar os dois números por conta. Somando todas as contas, abrem no máximo 12 janelas novas por dia. Uma janela custa cerca de US$ 0,04 de tempo de nó.',
-            'Um timer roda a cada minuto. Quando nenhuma janela está iniciando ou aberta, o gateway para o cluster, e vem um cool-down de 15 minutos, como o Azure recomenda entre parar e iniciar. A role do gateway no Azure lê, inicia e para o cluster. Ela não tem permissão para alterar nem apagar o cluster.',
+            'Um timer roda a cada minuto. Quando nenhuma janela está iniciando ou aberta, o gateway para o cluster. Depois vem um cool-down de 15 minutos, como o Azure recomenda entre parar e iniciar. A role do gateway no Azure lê, inicia e para o cluster. Ela não tem permissão para alterar nem apagar o cluster.',
             'Um banco manteria o cluster ligado, com autoscaling e capacidade reservada, porque a disponibilidade vale mais que o nó.',
+          ],
+          items: [
+            'O power state do cluster no Azure Resource Manager',
+            'As conditions dos pods e os estados dos containers',
+            'Os endpoints do Service do Kubernetes',
+            'Um GET /actuator/health/readiness pelo load balancer interno',
           ],
           links: [{ text: 'ADR 0009: cluster frio e janelas de acesso', href: DOCS.adr0009 }],
         },
@@ -209,7 +216,7 @@ export const ptBR: typeof en = {
         { service: 'Navegador', text: 'chama um único hostname público por HTTPS.' },
         {
           service: 'Edge da Cloudflare',
-          text: 'termina o TLS, aplica 3 regras de firewall, entre elas um limite de 40 requisições a cada 10 segundos por IP em /api/, e acrescenta a chave do edge.',
+          text: 'termina o TLS e aplica 3 regras de firewall, entre elas um limite de 40 requisições a cada 10 segundos por IP em /api/. Depois acrescenta a chave do edge.',
         },
         {
           service: 'Gateway',
@@ -241,8 +248,14 @@ export const ptBR: typeof en = {
         {
           title: 'Tempo de cada requisição',
           paragraphs: [
-            'A API devolve um header com o tempo dentro da aplicação, os statements JDBC por tipo, o tempo de banco, a espera por uma conexão do pool e a instância que respondeu. Só números saem da API, nunca o texto do SQL ou dados. O gateway coloca esses números no trace como as etapas app e database.',
-            'A simulação rápida não executa nenhum statement SQL, e o header dela mostra zero trabalho de banco em toda chamada.',
+            'Cada resposta da API tem um header de tempo com estes valores:',
+            'Só números saem da API, nunca o texto do SQL ou dados. O gateway coloca esses números no trace como as etapas app e database. A simulação rápida não executa nenhum statement SQL, e o header dela mostra zero trabalho de banco em toda chamada.',
+          ],
+          items: [
+            'Tempo dentro da aplicação',
+            'Statements JDBC por tipo, e o tempo de banco',
+            'Espera por uma conexão do pool',
+            'A instância que respondeu',
           ],
           links: [
             { text: 'ADR 0013: headers de tempo por requisição', href: DOCS.adr0013 },
@@ -285,7 +298,7 @@ export const ptBR: typeof en = {
           links: [{ text: 'ADR 0012: controle de orçamento e limites contra abuso', href: DOCS.adr0012 }],
         },
         {
-          title: 'Uma pessoa, um teste',
+          title: 'Contas duplicadas',
           paragraphs: [
             'O limite de 3 janelas é por conta, então uma segunda conta é o jeito fácil de contornar. O gateway retém uma conta nova com o mesmo fingerprint de dispositivo ou a mesma caixa de e-mail normalizada de outra. O mesmo IP sozinho só gera uma marcação, porque um escritório ou uma universidade compartilha um endereço.',
             'Um navegador novo ou uma VPN passa por esse filtro. Um banco verificaria a identidade no cadastro.',
@@ -333,8 +346,8 @@ export const ptBR: typeof en = {
           title: 'Edge: um Worker da Cloudflare no lugar do Azure Front Door',
           paragraphs: [
             'O plano era o Front Door. O Azure recusou nesta assinatura com "Free Trial and Student account is forbidden for Azure Frontdoor resources". A zona DNS já estava na Cloudflare e um Worker não custa nada, então levei o edge para lá. O Front Door Standard ainda somaria US$ 35 por mês.',
-            'O custo: uma parte do caminho fica fora do Azure, o plano gratuito não tem conjunto de regras WAF gerenciado, e eu atualizo à mão a lista de endereços da Cloudflare no gateway. O código Terraform do Front Door continua no repositório, atrás de uma flag.',
-            'Um banco usaria o Front Door Premium ou equivalente, com regras WAF gerenciadas e private link até a origem.',
+            'O custo: uma parte do caminho fica fora do Azure, e o plano gratuito não tem conjunto de regras WAF gerenciado. Eu atualizo à mão a lista de endereços da Cloudflare no gateway. O código Terraform do Front Door continua no repositório, atrás de uma flag.',
+            'Num banco eu colocaria ali o Front Door Premium ou equivalente, com regras WAF gerenciadas e private link até a origem.',
           ],
           links: [{ text: 'ADR 0010: edge na Cloudflare no lugar do Front Door', href: DOCS.adr0010 }],
         },
@@ -349,9 +362,9 @@ export const ptBR: typeof en = {
         {
           title: 'Banco: North Central US, com endpoint público',
           paragraphs: [
-            'Belgium Central não tinha capacidade para o tamanho B1ms, então o servidor PostgreSQL 16 ficou em North Central US, e os dois hosts estão em Belgium Central. Cada statement atravessa da Europa para os EUA. Ativar um contrato grava muitas linhas e leva cerca de 4,5 s.',
+            'Belgium Central não tinha capacidade para o tamanho B1ms, então o servidor PostgreSQL 16 ficou em North Central US. Os dois hosts estão em Belgium Central. Cada statement atravessa da Europa para os EUA. Ativar um contrato grava muitas linhas e leva cerca de 4,5 s.',
             'O endpoint é público, com TLS e a regra de firewall "Azure services". Escolhi isso no lugar de um private endpoint para economizar cerca de US$ 8 por mês. A senha tem 28 caracteres aleatórios e existe só no Key Vault.',
-            'Um banco usaria rede privada, login do Entra ID no banco e a mesma região de quem chama.',
+            'Para um banco: rede privada, login do Entra ID no banco de dados e a mesma região de quem chama.',
           ],
           links: [{ text: 'Tabela de decisões', href: DOCS.decisions }],
         },
@@ -470,7 +483,7 @@ export const ptBR: typeof en = {
         items: [
           'Dados da conta: até você pedir a eliminação, ou até a conta passar 12 meses sem uso.',
           'Logs de segurança: 90 dias.',
-          'Um job diário apaga as linhas de auditoria com mais de 90 dias e as contas com 12 meses sem uso, junto com as janelas e as mensagens de contato delas.',
+          'Um job diário apaga as linhas de auditoria com mais de 90 dias. Ele também apaga as contas com 12 meses sem uso, com as janelas e as mensagens de contato delas.',
           'Para apagar seus dados antes, peça pelo formulário de contato. Também apago a sua conta de convidado no Microsoft Entra ID.',
         ],
       },

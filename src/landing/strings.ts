@@ -170,7 +170,7 @@ const landingEn = {
       {
         title: 'Why the same jar runs on two hosts',
         paragraphs: [
-          'A comparison of Kubernetes and serverless is fair only when both run the same program. On Azure Functions the jar runs as a custom handler: the Functions host starts a Java runtime that I build with jlink and a CDS archive, and forwards each HTTP request to Spring Boot. CI tests one artifact, and both hosts run that artifact.',
+          'A comparison of Kubernetes and serverless is fair only when both run the same program. On Azure Functions the jar runs as a custom handler. The Functions host starts a Java runtime that I build with jlink and a CDS archive. It forwards each HTTP request to Spring Boot. CI tests one artifact, and both hosts run that artifact.',
           'The cost is two deploy paths to keep working, and a 129 MB package whose Java runtime only a new build can patch. The outbox relay runs only on AKS, so an event written on the serverless host waits for a running pod.',
           'A bank would pick one host per service from load and cost data, and keep one deploy path.',
         ],
@@ -195,10 +195,17 @@ const landingEn = {
       {
         title: 'Access windows and the cool-down',
         paragraphs: [
-          'The gateway shows each stage of the start from real signals: the power state from Azure Resource Manager, pod conditions, Service endpoints, and one GET /actuator/health/readiness through the internal load balancer. The window opens when that call answers 200 and lasts 15 minutes from then.',
+          'The gateway shows each stage of the start from real signals:',
+          'The window opens when that readiness call answers 200, and it lasts 15 minutes from then.',
           'Each account gets 3 windows, and a window counts only when it opens, so a failed start costs the user nothing. I can change both numbers per account. All accounts together can open 12 new windows per day. One window costs about US$0.04 of node time.',
-          'A timer runs every minute. When no window is starting or open, the gateway stops the cluster, and a cool-down of 15 minutes follows, as Azure advises between a stop and a start. The Azure role of the gateway can read, start and stop the cluster. It has no right to change or delete it.',
+          'A timer runs every minute. When no window is starting or open, the gateway stops the cluster. A cool-down of 15 minutes follows, as Azure advises between a stop and a start. The Azure role of the gateway can read, start and stop the cluster. It has no right to change or delete it.',
           'A bank would keep the cluster running with autoscaling and reserved capacity, because availability is worth more than the node.',
+        ],
+        items: [
+          'The power state of the cluster in Azure Resource Manager',
+          'Pod conditions and container states',
+          'Endpoints of the Kubernetes Service',
+          'One GET /actuator/health/readiness through the internal load balancer',
         ],
         links: [{ text: 'ADR 0009: cold cluster and access windows', href: DOCS.adr0009 }],
       },
@@ -279,8 +286,14 @@ const landingEn = {
       {
         title: 'Timing of each request',
         paragraphs: [
-          'The API sends a response header with the time inside the application, the JDBC statements by kind, the database time, the wait for a pooled connection and the instance that answered. Only numbers leave the API, never SQL text or data. The gateway adds them to the trace as the stages app and database.',
-          'The loan preview runs no SQL statement, and its header shows zero database work on every call.',
+          'Each response of the API has a timing header with these values:',
+          'Only numbers leave the API, never SQL text or data. The gateway adds them to the trace as the stages app and database. The loan preview runs no SQL statement, and its header shows zero database work on every call.',
+        ],
+        items: [
+          'Time inside the application',
+          'JDBC statements by kind, and the database time',
+          'Wait for a pooled connection',
+          'The instance that answered',
         ],
         links: [
           { text: 'ADR 0013: per-request timing headers', href: DOCS.adr0013 },
@@ -323,7 +336,7 @@ const landingEn = {
         links: [{ text: 'ADR 0012: budget guard and abuse limits', href: DOCS.adr0012 }],
       },
       {
-        title: 'One person, one trial',
+        title: 'Duplicate accounts',
         paragraphs: [
           'The limit of 3 windows is per account, so a second account is the easy way around it. The gateway holds a new account with the same device fingerprint or the same normalized mailbox as another one. The same IP address alone only adds a flag, because an office or a university shares one address.',
           'A new browser or a VPN passes this filter. A bank would verify identity at sign-up.',
@@ -371,8 +384,8 @@ const landingEn = {
         title: 'Edge: a Cloudflare Worker in place of Azure Front Door',
         paragraphs: [
           'The plan was Front Door. Azure refused it on this subscription with "Free Trial and Student account is forbidden for Azure Frontdoor resources". The DNS zone was already at Cloudflare and a Worker costs nothing, so I moved the edge there. Front Door Standard would also have added US$35 per month.',
-          'The cost: one part of the path is outside Azure, the free plan has no managed WAF rule set, and I update the list of Cloudflare addresses in the gateway by hand. The Terraform code for Front Door is still in the repository, behind a flag.',
-          'A bank would use Front Door Premium or an equal product, with managed WAF rules and a private link to the origin.',
+          'The cost: one part of the path is outside Azure, and the free plan has no managed WAF rule set. I update the list of Cloudflare addresses in the gateway by hand. The Terraform code for Front Door is still in the repository, behind a flag.',
+          'In a bank I would put Front Door Premium or an equal product there, with managed WAF rules and a private link to the origin.',
         ],
         links: [{ text: 'ADR 0010: Cloudflare edge instead of Front Door', href: DOCS.adr0010 }],
       },
@@ -389,7 +402,7 @@ const landingEn = {
         paragraphs: [
           'Belgium Central had no capacity for the B1ms size, so the PostgreSQL 16 server is in North Central US and both hosts are in Belgium Central. Each statement crosses from Europe to the US. Activating a contract writes many rows and takes about 4.5 s.',
           'The endpoint is public, with TLS and the "Azure services" firewall rule. I chose that over a private endpoint to save about US$8 per month. The password has 28 random characters and exists only in Key Vault.',
-          'A bank would use a private network, Entra ID sign-in for the database, and the same region as the callers.',
+          'For a bank: a private network, Entra ID sign-in for the database, and the same region as the callers.',
         ],
         links: [{ text: 'Decision table', href: DOCS.decisions }],
       },
@@ -516,7 +529,7 @@ const privacyEn = {
       title: '6. Who processes the data',
       items: [
         'Microsoft Azure: hosting, database, sign-in (Microsoft Entra ID) and logs.',
-        'Cloudflare: all traffic of the site goes through Cloudflare (DNS, TLS, CDN, firewall rules and the anti-bot check on forms). Cloudflare sees the IP address and the requests of each visitor.',
+        'Cloudflare: Cloudflare carries all traffic of the site (DNS, TLS, CDN, firewall rules and the anti-bot check on forms). Cloudflare sees the IP address and the requests of each visitor.',
       ],
       after: [
         'These companies are processors. Their data centers can be outside Brazil. I share the data with no other party.',
