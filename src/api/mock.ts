@@ -698,7 +698,7 @@ export async function getStatus(host: HostKind): Promise<PlatformStatus> {
   const st = (id: string): ServiceStatus['state'] => slowOne === id ? 'degraded' : 'up'
   const fnReq = rnd(18, 64)
   const services: ServiceStatus[] = [
-    { id: 'edge', name: 'consignado-edge', kind: 'Cloudflare Worker', state: 'up', detail: 'Cloudflare Worker consignado-edge; rate limit 40 requests / 10 s per IP', metrics: [], source: ['gateway'] },
+    { id: 'edge', name: 'consignado-edge', kind: 'Cloudflare Worker', state: 'up', detail: 'Cloudflare Worker consignado-edge, rate limit 40 requests / 10 s per IP', metrics: [], source: ['gateway'] },
     {
       id: 'gateway', name: 'func-consignado-gw-km01', kind: 'Azure Function (Java)', region: STATUS_REGION, state: 'up', detail: 'Resource health: Available',
       metrics: [metric('requests', 'Requests', fnReq + rnd(10, 40), 'count'), metric('errors', 'HTTP 5xx', 0, 'count'), metric('latency-avg', 'Average response time', rnd(70, 190), 'ms')], source: ['azure-monitor', 'resource-health'],

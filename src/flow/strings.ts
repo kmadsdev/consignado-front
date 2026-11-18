@@ -46,7 +46,7 @@ export const en = {
     app: 'Spring Boot ran the business rules of this request. The API reports this time itself, database time included.',
     lb: 'The internal Azure load balancer gives the cluster a private address with no public IP. The time includes the network both ways.',
     service: 'The Kubernetes Service sends the call to a pod that is Ready.',
-    pod: 'A pod runs the same Spring Boot jar as the serverless host.',
+    pod: 'A pod runs the same build artifact as the serverless host, an executable Spring Boot JAR.',
     database: 'Azure Database for PostgreSQL holds the shared data of both hosts. The API reports the time of its statements.',
   } as Record<string, string>,
   close: 'Close',
@@ -114,10 +114,10 @@ export const en = {
   },
   // ---- inspector drawer
   inspector: {
-    title: 'Request inspector',
-    trigger: 'Open the Request inspector',
-    close: 'Close the Request inspector',
-    resize: 'Resize the Request inspector',
+    title: 'Request Inspector',
+    trigger: 'Open the Request Inspector',
+    close: 'Close the Request Inspector',
+    resize: 'Resize the Request Inspector',
     tabRequests: 'Requests',
     tabCluster: 'Cluster start',
     listTitle: (n: number) => `Requests of this session (${n})`,
@@ -134,7 +134,7 @@ export const en = {
   },
   // ---- inline record
   inline: {
-    open: 'Open in the inspector',
+    open: 'Open in the Request Inspector',
     cold: 'cold', warm: 'warm', slow: 'slow call',
     failed: (status: number, code?: string) => (status ? `HTTP ${status}${code ? ` (${code})` : ''}` : 'no answer'),
     ok: (status: number) => `HTTP ${status}`,
