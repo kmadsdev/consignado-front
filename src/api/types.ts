@@ -94,11 +94,22 @@ export interface Customer { id: string; agreementId: string; name: string; cpf: 
 export interface Margin { customerId: string; monthlyIncome: number; marginLimit: number; committed: number; available: number }
 export interface Simulation { id: string; customerId: string; principal: number; termMonths: number; installment: number; totalAmount: number; monthlyInterestRate: number; expiresAt: string }
 export type ContractStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'SETTLED' | 'CANCELLED'
-export interface Contract { id: string; customerId: string; simulationId: string; status: ContractStatus; principal: number; termMonths: number; installment: number; createdAt: string }
+export interface Contract {
+  id: string; customerId: string; simulationId: string; status: ContractStatus; principal: number; termMonths: number; installment: number; createdAt: string
+  /** The version of the API row as an entity tag (`"3"`), for `If-Match` on a state change. */
+  etag?: string
+}
 
 // ---- admin ------------------------------------------------------------------
 export interface AdminUser extends Me { company: string; linkedin: string; createdAt: string; lastSeenAt: string; flags: Array<'same-device' | 'same-ip' | 'disposable-email' | 'same-mailbox'> }
-export interface AdminState { engine: Engine; budget: { limitUsd: number; spentUsd: number; asOf: string }; paused: boolean }
+/**
+ * The gateway sends the budget in the billing currency of the subscription: {limit, spent, currency, asOf}.
+ * limitUsd and spentUsd are the old names of the same numbers (they were never US dollars); a gateway before
+ * fix/budget-currency sends only those. Read it with toBudget (map.ts).
+ */
+export interface ApiBudget { limit?: number; spent?: number; currency?: string; asOf: string; limitUsd?: number; spentUsd?: number }
+export interface Budget { limit: number; spent: number; currency: string; asOf: string }
+export interface AdminState { engine: Engine; budget: ApiBudget; paused: boolean }
 export interface ContactRequest { id: string; kind: 'contact' | 'more-windows'; name: string; email: string; message: string; createdAt: string; /** Entra object id of a signed-in sender; null for a guest. */ userId?: string | null }
 
 // ---- live service status (GET /api/status?host=functions|aks, CONTRACT-ADDENDUM.md) ----------

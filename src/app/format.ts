@@ -18,6 +18,14 @@ export const brl = (n: number) => BRL.format(n)
 /** A rounded amount with no cents: R$ 5.200 */
 export const brlRound = (n: number) => BRL_ROUND.format(n)
 export const usd = (n: number) => USD.format(n)
+/** An amount in the currency that the server names (ISO 4217); an unknown code shows the number and the code. */
+export function moneyIn(n: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat(LOCALE, { style: 'currency', currency }).format(n)
+  } catch {
+    return `${decimal(n, 2)} ${currency}`
+  }
+}
 export const percent = (rate: number, digits = 2) => `${decimal(rate * 100, digits)}%`
 export const dateTime = (isoText: string) => DATE_TIME.format(new Date(isoText))
 export const dateOnly = (isoText: string) => DATE.format(new Date(isoText))

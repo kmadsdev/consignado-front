@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   cpfForApi, customerToApi, pageQuery, parseTrace, previewToApi, problemText, simulationToApi,
-  toAgreement, toContract, toCustomer, toList, toMargin, toPreview, toSimulation, toSnapshot,
+  toAgreement, toBudget, toContract, toCustomer, toList, toMargin, toPreview, toSimulation, toSnapshot,
 } from '../map.ts'
 
 const customer = { id: 'c0ffee00-0000-4000-8000-000000000001', cpf: '***.***.***-09', fullName: 'Ana Teste Exemplo', agreementId: 'a0000000-0000-4000-8000-000000000001', netMonthlySalary: 5000.0, createdAt: '2026-11-17T08:00:00Z' }
@@ -158,4 +158,12 @@ test('snapshot: a guest gets the income rounded to the nearest R$ 100', () => {
   const snap = toSnapshot({ asOf: '2026-11-17T09:00:00Z', customers: [{ ...customer, netMonthlySalary: 2139.5 }, { ...customer, netMonthlySalary: 5250 }] })
   assert.deepEqual(snap.customers.map((c) => c.monthlyIncome), [2100, 5300])
   assert.equal(toCustomer({ ...customer, netMonthlySalary: 2139.5 }).monthlyIncome, 2139.5)
+})
+
+test('budget: the new fields in the billing currency; the old fields as a fallback', () => {
+  const asOf = '2026-11-18T20:00:00Z'
+  assert.deepEqual(toBudget({ limit: 330, spent: 23.15, currency: 'brl', asOf, limitUsd: 330, spentUsd: 23.15 }), { limit: 330, spent: 23.15, currency: 'BRL', asOf })
+  assert.deepEqual(toBudget({ limitUsd: 60, spentUsd: 12.5, asOf }), { limit: 60, spent: 12.5, currency: 'BRL', asOf })
+  assert.equal(toBudget({ limit: 60, spent: 1, currency: 'USD', asOf }).currency, 'USD')
+  assert.equal(toBudget({ limit: 60, spent: 1, currency: 'R$', asOf }).currency, 'BRL')
 })

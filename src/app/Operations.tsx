@@ -140,8 +140,19 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
   }
   const doContractAction = async (action: ContractAction) => {
     if (!contract) return
-    const next = await run(() => api.contractAction(host, contract.id, action), (c) => T.ops.contractChanged(c.id, T.contractStatus[c.status]))
-    if (next) setContracts((list) => list.map((c) => (c.id === next.id ? next : c)))
+    // A 412 (the contract changed since this page read it) shows its message and its request record like
+    // any other answer; the client read the contract again, and the table shows that current state.
+    let current: Contract | undefined
+    const next = await run(async () => {
+      try {
+        return await api.contractAction(host, contract.id, action)
+      } catch (err) {
+        if (err instanceof api.StaleVersionError) current = err.current
+        throw err
+      }
+    }, (c) => T.ops.contractChanged(c.id, T.contractStatus[c.status]))
+    const row = next ?? current
+    if (row && alive.current) setContracts((list) => list.map((c) => (c.id === row.id ? row : c)))
   }
   const openIncome = () => {
     if (!customer) return

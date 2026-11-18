@@ -25,10 +25,14 @@ certificates for both hosts, network-level DDoS protection and WAF rules, at no 
 - On `/api/*` it accepts only `GET`, `POST`, `PUT` and `PATCH`, and refuses a declared body
   above 64 KB (413).
 - It forwards only the headers that the gateway needs (`accept`, `accept-language`,
-  `authorization`, `content-type`, `idempotency-key`, `x-fingerprint`), and adds `X-Edge-Key`,
+  `authorization`, `content-type`, `idempotency-key`, `if-match`, `if-none-match`,
+  `x-fingerprint`), and adds `X-Edge-Key`,
   `CF-Connecting-IP` and `X-Forwarded-Host`. The gateway refuses a request without the key, so
   the function cannot be called around the edge. The gateway function app also accepts only the
   Cloudflare address ranges.
+- On `/api/*` it returns the gateway's response headers (`etag` and `location` included) and
+  removes only `set-cookie`. It always sets `cache-control: no-store`, so an `ETag` on an API
+  answer never makes the edge or the browser cache it. Test: `npm test` (Node 23.6 or later).
 - It takes no access decision and holds no user data. Tokens, quotas and limits are checked
   by the gateway.
 
