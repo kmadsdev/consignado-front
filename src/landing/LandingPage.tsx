@@ -51,13 +51,15 @@ function Links({ links }: { links: DocLink[] }) {
 
 function List({ items }: { items: string[] }) {
   return (
-    <TextContent>
-      <ul>
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </TextContent>
+    <Prose>
+      <TextContent>
+        <ul>
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </TextContent>
+    </Prose>
   )
 }
 
@@ -106,7 +108,7 @@ function PageHeader() {
   const follow = useFollow()
   return (
     <SpaceBetween size="m">
-      <Header variant="h1" description={t.header.tagline}>
+      <Header variant="h1" description={<span style={{ display: 'block', maxWidth: '72ch' }}>{t.header.tagline}</span>}>
         {t.header.title}
       </Header>
       <Prose>
@@ -130,9 +132,11 @@ function PageHeader() {
           {t.header.secondaryAction}
         </Button>
       </SpaceBetween>
-      <Box color="text-body-secondary" fontSize="body-s">
-        {t.header.signInNote}
-      </Box>
+      <Prose>
+        <Box color="text-body-secondary" fontSize="body-s">
+          {t.header.signInNote}
+        </Box>
+      </Prose>
       <Box padding={{ bottom: 'xs' }} />
     </SpaceBetween>
   )
