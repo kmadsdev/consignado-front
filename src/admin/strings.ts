@@ -93,7 +93,7 @@ export const en = {
     stopConfirm: 'Stop the engine',
     done: 'Engine state changed.',
     budget: 'Monthly budget',
-    budgetHint: (asOf: string) => `Cost of the whole project this month. Updated ${asOf}.`,
+    budgetHint: (asOf: string) => `Cost of the resource group rg-consignado this month, in the billing currency. The Azure budget counts the whole subscription. Updated ${asOf}.`,
     spent: 'Spent this month',
     spentOf: (spent: string, limit: string) => `${spent} of ${limit}`,
     rule: 'At 100% the gateway pauses the engine, ends the open windows and stops the cluster.',
@@ -154,7 +154,7 @@ export const en = {
     body: [
       'Pause sets a flag in the gateway. New windows get 409 paused. Open windows run to their end, then the gateway stops the cluster. The site and the serverless host continue.',
       'Stop ends every open window at once and asks Azure Resource Manager to stop the cluster. The 15-minute cool-down starts after Azure reports the cluster stopped.',
-      'The subscription budget is US$60 per month. At 50% and 80% Azure sends an email. At 100% an Azure action group calls a gateway hook, and the gateway pauses the engine, ends the open windows and stops the cluster. This is not a hard cap: the database, the registry, the node disk and the public IP cost about US$31 to 35 per month while the engine is paused. You resume the engine by hand.',
+      'The subscription budget is R$ 330 per month (about US$60); Azure bills this subscription in BRL. At 50% and 80% Azure sends an email. At 100% an Azure action group calls a gateway hook, and the gateway pauses the engine, ends the open windows and stops the cluster. This is not a hard cap: the database, the registry, the node disk and the public IP cost about US$31 to 35 (about R$ 170 to 195) per month while the engine is paused. You resume the engine by hand.',
       'A new account with the same device fingerprint or the same mailbox as another account is held. The same IP address alone only adds a flag, because an office or a university shares one address. The gateway stores the IP address and the fingerprint only as HMAC-SHA256 hashes.',
       'Delete user data removes the account row, its windows and its contact requests, and ends an open window. The audit log keeps a hashed id. The guest account in Entra ID stays until you remove it in the Entra admin center. Every admin action writes an audit row.',
     ],

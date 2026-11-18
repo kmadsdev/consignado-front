@@ -332,14 +332,14 @@ const landingEn = {
       'Visitors sign up with an email one-time code. They become restricted guest accounts in my Entra ID tenant.',
       'Cloudflare Turnstile checks the contact form and the profile form.',
       'The gateway stores IP addresses and device fingerprints only as HMAC. An account on the same device or mailbox as another account waits for my review.',
-      'The monthly budget is US$60. At 100 percent the gateway pauses the engine and stops the cluster. The site and the serverless host continue.',
+      'The monthly budget is R$ 330 (about US$60). At 100 percent the gateway pauses the engine and stops the cluster. The site and the serverless host continue.',
       'An independent security review on 2026-11-17 found no critical or high issue. I fixed the medium findings.',
     ],
     topics: [
       {
         title: 'What the budget guard stops, and what it does not',
         paragraphs: [
-          'At 50 and 80 percent of US$60 I get an email. At 100 percent an Azure action group calls a webhook of the gateway, which pauses the engine and stops the cluster. The running node is the largest variable cost, and a stop deletes nothing.',
+          'At 50 and 80 percent of the R$ 330 budget I get an email. At 100 percent an Azure action group calls a webhook of the gateway, which pauses the engine and stops the cluster. The running node is the largest variable cost, and a stop deletes nothing.',
           'An Azure budget is an alert, not a hard cap. It fires after the spend is recorded, and the fixed costs of database, registry, disk and public IP continue. A bank does not stop production on a budget alert. It sets budgets per team, with forecasts and anomaly detection, and pays for capacity in advance.',
         ],
         links: [{ text: 'ADR 0012: budget guard and abuse limits', href: DOCS.adr0012 }],

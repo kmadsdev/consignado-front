@@ -30,6 +30,8 @@ export const getMargin: typeof mock.getMargin = MOCK ? mock.getMargin : real.get
 export const simulate: typeof mock.simulate = MOCK ? mock.simulate : real.simulate
 export const createContract: typeof mock.createContract = MOCK ? mock.createContract : real.createContract
 export const contractAction: typeof mock.contractAction = MOCK ? mock.contractAction : real.contractAction
+export const getContract: typeof mock.getContract = MOCK ? mock.getContract : real.getContract
+export { StaleVersionError } from './versions'
 export const previewSimulation: typeof mock.previewSimulation = MOCK ? mock.previewSimulation : real.previewSimulation
 export const getSnapshot: typeof mock.getSnapshot = MOCK ? mock.getSnapshot : real.getSnapshot
 export const adminListUsers: typeof mock.adminListUsers = MOCK ? mock.adminListUsers : real.adminListUsers
