@@ -162,7 +162,7 @@ function Aks() {
           </SpaceBetween>
         </Container>
         <Table
-          header={<Header variant="h2" counter={me ? `(${me.windowsUsed})` : sessions ? `(${sessions.length})` : undefined} description={T.aks.pastHint}>{T.aks.past}</Header>}
+          header={<Header variant="h2" counter={sessions ? `(${sessions.length})` : undefined} description={me && sessions && me.windowsUsed > sessions.length ? `${T.aks.pastHint} ${T.aks.pastElsewhere(me.windowsUsed, sessions.length)}` : T.aks.pastHint}>{T.aks.past}</Header>}
           loading={!sessions}
           loadingText={T.common.loading}
           items={sessions ?? []}
