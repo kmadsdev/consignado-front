@@ -12,6 +12,7 @@ import { hasStoredTheme, initialTheme, setTheme, type ThemeMode } from './theme'
 const ENGINE_ICON: Record<string, 'status-positive' | 'status-stopped' | 'status-in-progress' | 'status-warning' | 'status-pending'> = {
   running: 'status-positive', stopped: 'status-stopped', starting: 'status-in-progress', stopping: 'status-in-progress', cooldown: 'status-pending', paused: 'status-warning',
 }
+const COOLDOWN_MS = 15 * 60_000
 const only = (on: boolean, utility: TopNavigationProps.Utility): TopNavigationProps.Utility[] => (on ? [utility] : [])
 const PERSONA_ORDER: PersonaId[] = ['guest', 'recruiter', 'recruiter-new', 'recruiter-held', 'recruiter-spent', 'admin']
 
@@ -33,7 +34,12 @@ export function TopBar() {
   }, [])
 
   const engineState = engine?.state ?? 'stopped'
-  const engineLabel = engine?.paused && engineState !== 'paused' ? S.engine.pausedNoNew : engineState === 'paused' && engine?.pausedReason ? S.engine.pausedBy[engine.pausedReason] : S.engine.states[engineState]
+  // The gateway sets `since` to the stop time when the cool-down starts. The cool-down lasts 15 minutes.
+  const cooldownMin = engineState === 'cooldown' && engine ? Math.ceil((Date.parse(engine.since) + COOLDOWN_MS - Date.now()) / 60_000) : 0
+  const engineLabel = engine?.paused && engineState !== 'paused' ? S.engine.pausedNoNew
+    : engineState === 'paused' && engine?.pausedReason ? S.engine.pausedBy[engine.pausedReason]
+    : cooldownMin > 0 ? S.engine.cooldownLeft(cooldownMin)
+    : S.engine.states[engineState]
   const utilities: TopNavigationProps.Utility[] = [
     {
       type: 'button',
