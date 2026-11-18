@@ -15,11 +15,12 @@ import type {
   PreviewInput, PreviewResult, SessionView, SimulationInput, SimulationResult, Snapshot,
 } from './mock'
 import { E } from './strings'
+import { changeWithVersion, rememberEtag } from './versions'
 import type { AdminState, AdminUser, Agreement, ContactRequest, Contract, Customer, Engine, HostKind, Margin, Me, PlatformStatus, Profile, RequestTrace, Session, Simulation } from './types'
 
 type Auth = 'required' | 'optional' | 'none'
 interface Options { method?: string; body?: unknown; auth?: Auth; headers?: Record<string, string>; host?: HostKind; label?: string }
-interface Raw<T> { data: T; trace: RequestTrace | null }
+interface Raw<T> { data: T; trace: RequestTrace | null; etag: string | null }
 
 const FUNCTION_IDLE_MS = 10 * 60_000
 const last: Partial<Record<HostKind, { ms: number; at: number; cold: boolean }>> = {}
@@ -95,15 +96,15 @@ async function request<T>(path: string, o: Options = {}): Promise<Raw<T>> {
   if (!res.ok) throw toError(res.status, body as ApiProblem | null, trace, Number(res.headers.get('retry-after')) || 0, label)
   // A page of the static site in place of JSON: the gateway is not behind this path.
   if (!json) throw new ApiError(502, E.badGateway, trace ?? undefined, 'not-json', undefined, label)
-  return { data: body as T, trace }
+  return { data: body as T, trace, etag: res.headers.get('etag') }
 }
 
 /** One call to the Spring Boot API through the proxy of a host. */
-async function domain<T>(host: HostKind, method: string, path: string, body?: unknown, o: Partial<Options> = {}): Promise<{ data: T; trace: RequestTrace; label: string }> {
+async function domain<T>(host: HostKind, method: string, path: string, body?: unknown, o: Partial<Options> = {}): Promise<{ data: T; trace: RequestTrace; label: string; etag: string | null }> {
   const label = `${method} /api/${host === 'functions' ? 'fn' : 'aks'}/api/v1${path.split('?')[0]}`
   const res = await request<T>(`/${host === 'functions' ? 'fn' : 'aks'}/api/v1${path}`, { method, body, host, label, ...o })
   if (host === 'aks' && openSessionId) aksCalls.set(openSessionId, (aksCalls.get(openSessionId) ?? 0) + 1)
-  return { data: res.data, trace: res.trace ?? measuredTrace(host, label, 0, 200), label }
+  return { data: res.data, trace: res.trace ?? measuredTrace(host, label, 0, 200), label, etag: res.etag }
 }
 
 // ---- sessions remembered by this browser (the gateway has no "my sessions" route) ----
@@ -204,6 +205,8 @@ export async function listSimulations(host: HostKind): Promise<ApiResult<Simulat
 export async function listContracts(host: HostKind): Promise<ApiResult<Contract[]>> {
   const res = await domain<ApiPage<ApiContract>>(host, 'GET', `/contracts?${pageQuery()}`)
   const list = toList(res.data, toContract)
+  // Each row carries its version: it is the ETag of that contract until the next read.
+  for (const c of list.items) rememberEtag(host, c.id, null, c.etag)
   return { data: list.items, trace: res.trace, label: res.label, page: list.page }
 }
 export async function createCustomer(host: HostKind, input: CustomerInput): Promise<ApiResult<Customer>> {
@@ -228,12 +231,26 @@ export async function simulate(host: HostKind, input: SimulationInput): Promise<
 }
 export async function createContract(host: HostKind, simulationId: string): Promise<ApiResult<Contract>> {
   const res = await domain<ApiContract>(host, 'POST', '/contracts', contractToApi(simulationId), { headers: { 'Idempotency-Key': crypto.randomUUID() } })
-  return { data: toContract(res.data), trace: res.trace, label: res.label }
+  const data = toContract(res.data)
+  rememberEtag(host, data.id, res.etag, data.etag)
+  return { data, trace: res.trace, label: res.label }
 }
-export async function contractAction(host: HostKind, id: string, action: ContractAction): Promise<ApiResult<Contract>> {
+/** One contract, with its ETag (the header, else the version of the body). */
+export async function getContract(host: HostKind, id: string): Promise<ApiResult<Contract> & { etag: string | null }> {
+  const res = await domain<ApiContract>(host, 'GET', `/contracts/${encodeURIComponent(id)}`)
+  const data = toContract(res.data)
+  rememberEtag(host, data.id, res.etag, data.etag)
+  return { data, trace: res.trace, label: res.label, etag: res.etag }
+}
+async function postAction(host: HostKind, id: string, action: ContractAction, ifMatch: string): Promise<ApiResult<Contract> & { etag: string | null }> {
   const body = action === 'reject' ? { reason: E.reason.reject } : action === 'cancel' ? { reason: E.reason.cancel } : undefined
-  const res = await domain<ApiContract>(host, 'POST', `/contracts/${encodeURIComponent(id)}/${action}`, body)
-  return { data: toContract(res.data), trace: res.trace, label: res.label }
+  const res = await domain<ApiContract>(host, 'POST', `/contracts/${encodeURIComponent(id)}/${action}`, body, { headers: { 'If-Match': ifMatch } })
+  return { data: toContract(res.data), trace: res.trace, label: res.label, etag: res.etag }
+}
+/** A state change with `If-Match` (see versions.ts). 412 / 428: StaleVersionError with the current contract. */
+export async function contractAction(host: HostKind, id: string, action: ContractAction): Promise<ApiResult<Contract>> {
+  const res = await changeWithVersion({ get: getContract, act: postAction, messages: { stale: E.staleVersion, missing: E.versionMissing } }, host, id, action)
+  return { data: res.data, trace: res.trace, label: res.label }
 }
 
 // ---- guest calls ----------------------------------------------------------------------
