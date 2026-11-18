@@ -74,7 +74,7 @@ const landingEn = {
     primaryAction: 'Try a loan preview',
     secondaryAction: 'Sign in to use the Kubernetes host',
     signInNote:
-      'Sign-in uses Microsoft Entra ID with a one-time code sent to your email. To make an account, select "No account? Create one" on the Microsoft page, then "Sign up with email".',
+      'Sign-in uses Microsoft Entra ID with a one-time code sent to your email. To make an account, select "Create one!" next to "No account?" on the Microsoft page, then the option to sign up with your email.',
   },
 
   diagram: {

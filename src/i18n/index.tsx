@@ -11,9 +11,10 @@ interface LangValue {
 
 const LangContext = createContext<LangValue>({ lang: LANG, setLang: () => {} })
 
-/** Before the first paint: `<html lang>` and the description follow the active language. */
-export function applyDocumentLang(description: string): void {
+/** Before the first paint: `<html lang>`, the tab title and the description follow the active language. */
+export function applyDocumentLang(description: string, title?: string): void {
   document.documentElement.lang = LANG
+  if (title) document.title = title
   document.querySelector('meta[name="description"]')?.setAttribute('content', description)
 }
 

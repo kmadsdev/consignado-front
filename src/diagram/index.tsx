@@ -9,7 +9,7 @@ import Box from '@cloudscape-design/components/box'
 import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator, { type StatusIndicatorProps } from '@cloudscape-design/components/status-indicator'
 import type { HostKind, LifecycleEvent, StageStatus } from '../api/types'
-import { anchor, getView, iconSize, inferHost, STAGES_OF, SVC_W, type EdgeDef, type EdgeKind, type GroupDef, type Pt, type SvcDef, type ViewDef } from './model'
+import { anchor, getView, iconSize, inferHost, NARROW_SIZE, STAGES_OF, SVC_W, type EdgeDef, type EdgeKind, type GroupDef, type Pt, type SvcDef, type ViewDef } from './model'
 import { localizeDetail } from '../api/details'
 import { LOCALE } from '../i18n/lang.ts'
 import { STAGE_NAMES, UI } from './strings'
@@ -82,6 +82,20 @@ function usePrefersReducedMotion(): boolean {
     return () => mq.removeEventListener('change', on)
   }, [])
   return reduced
+}
+
+/** A phone: the overview switches to its vertical layout. The desktop layout does not change. */
+const NARROW_QUERY = '(max-width: 640px)'
+function useNarrowScreen(): boolean {
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(NARROW_QUERY).matches)
+  useEffect(() => {
+    const mq = window.matchMedia?.(NARROW_QUERY)
+    if (!mq) return
+    const on = () => setNarrow(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return narrow
 }
 
 /** Cloudscape `applyMode` puts the class `awsui-dark-mode` on the body. */
@@ -339,7 +353,7 @@ const edgeTypes = { flow: FlowEdge }
 const MARKERS = ['request', 'trust', 'deploy', 'pending', 'active', 'done', 'error']
 
 // ------------------------------------------------------------------ diagram --
-function DiagramInner({ view, events, onStageSelect, host, dark, nodeStatus }: ArchitectureDiagramProps & { dark: boolean }) {
+function DiagramInner({ view, events, onStageSelect, host, dark, nodeStatus, narrow }: ArchitectureDiagramProps & { dark: boolean; narrow: boolean }) {
   const reduced = usePrefersReducedMotion()
   const flow = useReactFlow()
   const wrap = useRef<HTMLDivElement>(null)
@@ -348,7 +362,7 @@ function DiagramInner({ view, events, onStageSelect, host, dark, nodeStatus }: A
 
   const info = useMemo(() => latestByStage(events), [events])
   const lane = host ?? inferHost(events.map((e) => e.stage))
-  const def = useMemo(() => getView(view, lane), [view, lane])
+  const def = useMemo(() => getView(view, lane, narrow), [view, lane, narrow])
 
   const { nodes, edges, firstStage } = useMemo(() => {
     const any = info.size > 0
@@ -425,7 +439,7 @@ function DiagramInner({ view, events, onStageSelect, host, dark, nodeStatus }: A
     setSelectedId(null)
     const id = window.setTimeout(fit, 60)
     return () => window.clearTimeout(id)
-  }, [view, fit])
+  }, [view, narrow, fit])
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     for (const c of changes) {
@@ -458,14 +472,14 @@ function DiagramInner({ view, events, onStageSelect, host, dark, nodeStatus }: A
         edgesFocusable={false}
         elementsSelectable
         zoomOnScroll={false}
-        zoomOnPinch
-        panOnDrag
+        zoomOnPinch={!narrow}
+        panOnDrag={!narrow}
         preventScrolling={false}
         deleteKeyCode={null}
         proOptions={{ hideAttribution: false }}
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1} className="dg-dots" />
-        <Controls showInteractive={false} position="bottom-left" />
+        {!narrow && <Controls showInteractive={false} position="bottom-left" />}
       </ReactFlow>}
     </div>
   )
@@ -474,8 +488,11 @@ function DiagramInner({ view, events, onStageSelect, host, dark, nodeStatus }: A
 export function ArchitectureDiagram(props: ArchitectureDiagramProps) {
   const pageDark = usePageDark()
   const dark = props.mode ? props.mode === 'dark' : pageDark
+  const narrow = useNarrowScreen() && props.view === 'overview'
+  // Narrow: the height follows the width, so the vertical drawing fills the box at a readable scale.
+  const size = narrow ? { aspectRatio: `${NARROW_SIZE.w} / ${NARROW_SIZE.h}` } : { height: props.height ?? 480 }
   return (
-    <div className="dg-root" data-mode={dark ? 'dark' : 'light'} style={{ height: props.height ?? 480 }} role="figure" aria-label={UI.diagramLabel[props.view]}>
+    <div className={`dg-root${narrow ? ' dg-narrow' : ''}`} data-mode={dark ? 'dark' : 'light'} style={size} role="figure" aria-label={UI.diagramLabel[props.view]}>
       <svg className="dg-defs" width="0" height="0" aria-hidden="true">
         <defs>
           {MARKERS.map((m) => (
@@ -486,7 +503,7 @@ export function ArchitectureDiagram(props: ArchitectureDiagramProps) {
         </defs>
       </svg>
       <ReactFlowProvider>
-        <DiagramInner {...props} dark={dark} />
+        <DiagramInner {...props} dark={dark} narrow={narrow} />
       </ReactFlowProvider>
     </div>
   )

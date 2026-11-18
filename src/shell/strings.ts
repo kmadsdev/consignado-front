@@ -16,6 +16,7 @@ export const en = {
     pausedBy: { budget: 'paused, budget reached', admin: 'paused by the owner' } as Record<string, string>,
     pausedNoNew: 'running, no new windows',
   },
+  docTitle: 'Consignado Cloud: Spring Boot payroll loan API on Azure Functions or AKS',
   metaDescription: 'A payroll-loan API on Azure Functions and AKS behind one Java gateway. The site draws each request with its measured timings. Technical demo, synthetic data.',
   lang: { label: 'EN | PT', title: 'Language', en: 'English', pt: 'Português (Brasil)' },
   theme: { toDark: 'Dark mode', toLight: 'Light mode', title: 'Switch between light and dark mode' },

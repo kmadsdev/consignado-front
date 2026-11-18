@@ -157,6 +157,61 @@ const OVERVIEW_AKS_MAP: Record<string, StageTarget> = {
   'cluster-stop': t('g-cluster'),
 }
 
+// ------------------------------------------------------- overview, phone --
+// The same nodes in a vertical path for a narrow screen (about 350 x 1590 design px), so the
+// labels stay readable at the width of a phone. Two long trust edges (workload identity and
+// the OIDC of GitHub Actions to Entra ID) are left out here: they would cross the whole drawing.
+// The node popovers still explain both.
+export const NARROW_SIZE = { w: 348, h: 1590 }
+const A = 100
+const B = 250
+const overviewNarrow = {
+  svcs: [
+    svc('user', A, 48, 'az:browser', N.user),
+    svc('frontdoor', A, 186, 'glyph:edge', N.frontdoor),
+    svc('blob', B, 186, 'az:storage-account', N.blob, 'bottom'),
+    svc('gateway', A, 322, 'az:function-app', N.gateway),
+    svc('keyvault', B, 322, 'az:key-vault', N.keyvault),
+    svc('entra', B, 430, 'az:entra-external-id', N.entra),
+    svc('fn', B, 600, 'az:function-app', N.fn),
+    svc('lb', A, 762, 'az:load-balancer', N.lb),
+    svc('svc', A, 952, 'k8s:svc', N.svc),
+    svc('pod1', B, 952, 'k8s:pod', N.pod),
+    svc('hpa', A, 1062, 'k8s:hpa', N.hpa),
+    svc('pod2', B, 1062, 'k8s:pod', N.pod),
+    svc('pg', B, 1230, 'az:postgresql', N.pg),
+    svc('acr', A, 1360, 'az:container-registry', N.acr),
+    svc('gha', B, 1360, 'glyph:pipeline', N.gha),
+  ],
+  groups: [
+    { id: 'g-edge', x: 8, y: 126, w: 324, h: 134, label: G.edge, tone: 'neutral' },
+    { id: 'g-fn', x: 168, y: 528, w: 164, h: 148, label: G.serverless, icon: 'az:function-app', tone: 'neutral' },
+    { id: 'g-vnet', x: 8, y: 700, w: 324, h: 467, label: G.vnet, icon: 'az:virtual-network', tone: 'net' },
+    { id: 'g-cluster', x: 16, y: 838, w: 308, h: 319, label: G.cluster, icon: 'az:kubernetes-service', tone: 'k8s' },
+    { id: 'g-nodepool', x: 24, y: 866, w: 292, h: 281, label: G.nodepool, icon: 'k8s:node', tone: 'neutral' },
+    { id: 'g-ns', x: 32, y: 894, w: 276, h: 243, label: G.ns, icon: 'k8s:ns', tone: 'neutral' },
+    { id: 'g-ci', x: 8, y: 1300, w: 324, h: 135, label: G.ci, tone: 'neutral' },
+  ],
+  edges: [
+    { id: 'e-user-fd', from: 'user', to: 'frontdoor', sh: 'b', th: 't', label: E.https },
+    { id: 'e-fd-blob', from: 'frontdoor', to: 'blob', sh: 'r', th: 'l', label: E.pageLoad },
+    { id: 'e-fd-gw', from: 'frontdoor', to: 'gateway', sh: 'b', th: 't', label: E.api, labelAt: [A, 274] },
+    { id: 'e-gw-kv', from: 'gateway', to: 'keyvault', sh: 'r', th: 'l', label: E.readSecrets },
+    { id: 'e-gw-entra', from: 'gateway', to: 'entra', sh: 'b', th: 'l', label: E.checkToken, labelAt: [163, 430] },
+    { id: 'e-gw-fn', from: 'gateway', to: 'fn', sh: 'b', th: 't', via: [[A, 515], [B, 515]], label: E.hostFn, labelAt: [175, 515] },
+    { id: 'e-gw-lb', from: 'gateway', to: 'lb', sh: 'b', th: 't', label: E.hostAks, labelAt: [A, 640] },
+    { id: 'e-lb-svc', from: 'lb', to: 'svc', sh: 'b', th: 't' },
+    { id: 'e-svc-pod1', from: 'svc', to: 'pod1', sh: 'r', th: 'l' },
+    { id: 'e-svc-pod2', from: 'svc', to: 'pod2', sh: 'r', th: 'l' },
+    { id: 'e-fn-pg', from: 'fn', to: 'pg', sh: 'r', th: 'r', via: [[340, 600], [340, 1230]] },
+    { id: 'e-pod1-pg', from: 'pod1', to: 'pg', sh: 'r', th: 'r', via: [[340, 952], [340, 1230]] },
+    { id: 'e-pod2-pg', from: 'pod2', to: 'pg', sh: 'b', th: 't', label: E.jdbc, labelAt: [B, 1168] },
+    { id: 'e-gha-acr', from: 'gha', to: 'acr', sh: 'l', th: 'r', kind: 'deploy', label: E.push },
+    { id: 'e-acr-pull', from: 'g-nodepool', to: 'acr', sh: 'b', th: 't', kind: 'trust', p1: [A, 1147], label: E.acrPull, labelAt: [A, 1240] },
+  ] as EdgeDef[],
+  legendAt: [86, 1452] as Pt,
+}
+
 // --------------------------------------------------------------------- aks --
 const AKS_VIEW: ViewDef = {
   svcs: [
@@ -267,10 +322,11 @@ const FUNCTIONS_VIEW: ViewDef = {
 export type ViewName = 'overview' | 'aks' | 'functions'
 
 /** The stage map says which node(s) and which edge(s) belong to each stage id. */
-export function getView(view: ViewName, host: 'functions' | 'aks'): ViewDef {
+export function getView(view: ViewName, host: 'functions' | 'aks', narrow = false): ViewDef {
   if (view === 'aks') return AKS_VIEW
   if (view === 'functions') return FUNCTIONS_VIEW
-  return { ...overviewBase, groups: overviewBase.groups as GroupDef[], stageMap: host === 'aks' ? OVERVIEW_AKS_MAP : OVERVIEW_FN_MAP }
+  const base = narrow ? overviewNarrow : overviewBase
+  return { ...base, groups: base.groups as GroupDef[], stageMap: host === 'aks' ? OVERVIEW_AKS_MAP : OVERVIEW_FN_MAP }
 }
 
 export const STAGES_OF: Record<'aks' | 'functions', readonly string[]> = { aks: AKS_STAGES, functions: FUNCTIONS_STAGES }
