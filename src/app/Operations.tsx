@@ -15,6 +15,7 @@ import { tracked } from '../flow/session'
 import type { CallRecord } from '../flow/store'
 import { useShell } from '../shell/context'
 import { ContractStatusText, CopyId, Mono } from './common'
+import { Explain } from './Explain'
 import { DataTable, type Column } from './DataTable'
 import { brl, dateOnly, dateTime, duration, percent, relativeTime } from './format'
 import { AddCustomerModal, IncomeModal, SimulateModal } from './OperationModals'
@@ -319,6 +320,7 @@ export function Operations({ host, canWrite, readOnlyReason }: Props) {
         </ExpandableSection>
       )}
       <Box color="text-body-secondary" fontSize="body-s">{T.ops.noDelete}</Box>
+      <Explain text={T.explain.rules} variant="default" />
 
       {modal === 'add' && (
         <AddCustomerModal

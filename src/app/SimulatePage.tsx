@@ -21,6 +21,7 @@ import { useAuth } from '../auth'
 import { demoAksStartEvents } from '../diagram'
 import { LifecycleReplay } from '../flow/LifecycleReplay'
 import { Mono } from './common'
+import { Explain } from './Explain'
 import { DataTable, type Column } from './DataTable'
 import { brl, brlRound, dateTime, duration, percent, relativeTime } from './format'
 import { RequestFlow, saveRecord, type FlowRecord } from './RequestFlow'
@@ -108,7 +109,7 @@ export function SimulatePage() {
         <Alert type="info" header={me ? T.guest.signedTitle : T.guest.noticeTitle}>{me ? T.guest.signedText : T.guest.noticeText}</Alert>
 
         <Grid gridDefinition={[{ colspan: 12 }, { colspan: 12 }]}>
-          <Container fitHeight header={<Header variant="h2" description={T.guest.formHint}>{T.guest.form}</Header>}>
+          <Container fitHeight header={<Header variant="h2" description={T.guest.formHint}>{T.guest.form}</Header>} footer={<Explain text={T.explain.serverless} />}>
             <form onSubmit={(e) => { e.preventDefault(); void submit() }} noValidate>
               <SpaceBetween size="m">
                 <ColumnLayout columns={2}>
@@ -149,7 +150,7 @@ export function SimulatePage() {
               </SpaceBetween>
             </form>
           </Container>
-          <Container fitHeight header={<Header variant="h2" description={T.guest.requestHint}>{T.guest.request}</Header>}>
+          <Container fitHeight header={<Header variant="h2" description={T.guest.requestHint}>{T.guest.request}</Header>} footer={<Explain text={T.explain.noSql} />}>
             <SpaceBetween size="s">
               {!record && <Box color="text-body-secondary">{T.guest.requestEmpty}</Box>}
               <RequestFlow host="functions" record={record} />
@@ -196,6 +197,7 @@ export function SimulatePage() {
               pageSize={10}
             />
           )}
+        <Explain text={T.explain.snapshot} variant="default" />
 
         <Container
           header={
