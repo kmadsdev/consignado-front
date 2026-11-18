@@ -6,7 +6,7 @@ export const ptBR: typeof en = {
   brandAlt: 'Símbolo do Consignado Cloud',
   footer: 'Demonstração técnica. Não é oferta de crédito. Todos os dados são sintéticos.',
   engine: {
-    chip: (label: string) => `Motor: ${label}`,
+    chip: (label: string) => `Engine: ${label}`,
     chipTitle: 'Estado do cluster AKS do host Kubernetes',
     states: {
       stopped: 'parado', starting: 'iniciando', running: 'ligado', stopping: 'parando', cooldown: 'em cool-down', paused: 'pausado',
@@ -63,7 +63,7 @@ export const ptBR: typeof en = {
     notifications: 'Notificações', breadcrumbs: 'Trilha de navegação', overflow: 'Mais', overflowTitle: 'Tudo', overflowBack: 'Voltar', overflowDismiss: 'Fechar o menu', external: 'Abre em uma nova aba',
   },
   inspector: {
-    title: 'Inspetor de requisições',
+    title: 'Request Inspector',
     empty: 'Nenhuma requisição ainda. Execute uma ação em uma tabela e o caminho dela pela nuvem aparece aqui.',
   },
   notFound: {

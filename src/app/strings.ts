@@ -272,7 +272,7 @@ export const en = {
   },
   opsPage: {
     title: 'Operations',
-    description: 'Read the shared data and change it through the loan workflow. Each action is one API call. The Request inspector shows its path and timing.',
+    description: 'Read the shared data and change it through the loan workflow. Each action is one API call. The Request Inspector shows its path and timing.',
     hostLabel: 'Host that answers',
     onFunctions: 'Calls go to the serverless host (Azure Functions).',
     onAks: 'Calls go to the Kubernetes host through the internal load balancer.',
