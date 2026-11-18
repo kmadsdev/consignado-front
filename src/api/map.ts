@@ -2,6 +2,7 @@
 // like `fullName`, `netMonthlySalary`, `installmentAmount`) and the frontend
 // types of ./types.ts. Both directions: responses and request bodies.
 // Pure functions, type-only imports: `node --test` runs this file as it is.
+import { etagOf } from './versions.ts'
 import type { Agreement, ApiBudget, ApiTiming, Budget, Contract, ContractStatus, Customer, HostKind, LifecycleEvent, Margin, RequestTrace, Simulation, StageStatus } from './types'
 
 // ---- the API shapes (application/Views.java, api/Requests.java) ---------------
@@ -62,7 +63,7 @@ export function toContractStatus(status: string): ContractStatus {
 export function toContract(c: ApiContract): Contract {
   return {
     id: c.id, customerId: c.customerId, simulationId: c.simulationId, status: toContractStatus(c.status), principal: num(c.principal),
-    termMonths: c.termMonths, installment: num(c.installmentAmount), createdAt: c.createdAt,
+    termMonths: c.termMonths, installment: num(c.installmentAmount), createdAt: c.createdAt, etag: etagOf(c.version),
   }
 }
 export function toPreview(p: ApiPreview): { installment: number; totalAmount: number; totalInterest: number; marginLimit: number; fitsMargin: boolean } {
