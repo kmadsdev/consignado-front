@@ -289,7 +289,7 @@ export const en = {
     whatStarts: 'What starts',
     whatStartsText: 'The AKS control plane, 1 node VM, 2 pods of the Spring Boot API and the internal load balancer.',
     coldStart: 'Cold start',
-    coldStartText: 'About 7 minutes. Measured: 7 min 13 s.',
+    coldStartText: 'About 7 minutes. Measured: 7\u00a0min 13\u00a0s.',
     window: 'Window',
     windowText: (minutes: number) => `${minutes} minutes. The countdown starts when the cluster is ready, not when you click.`,
     cost: 'Cost to me',
