@@ -24,6 +24,7 @@ export const DOCS = {
   adr0012: `${API}/docs/adr/0012-budget-guard-and-abuse-limits.md`,
   adr0013: `${API}/docs/adr/0013-per-request-timing-headers.md`,
   decisions: `${API}/docs/platform/decisions.md`,
+  accessLevels: `${API}/docs/platform/README.md#access-levels`,
   security: `${API}/docs/platform/security-and-privacy.md`,
   terraform: `${API}/infra/terraform/README.md`,
   ci: `${API}/.github/workflows/ci.yml`,

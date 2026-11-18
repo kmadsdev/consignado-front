@@ -19,9 +19,18 @@ export const ptBR: typeof en = {
     header: {
       title: 'Consignado Cloud',
       tagline:
-        'Uma API de empréstimo consignado que roda no Azure Functions e no AKS, atrás de um único gateway. O site desenha cada requisição que você envia, com o tempo medido de cada etapa.',
-      about:
-        'Demonstração técnica de Kaique Souza, engenheiro backend. Os três repositórios abaixo têm a API de empréstimo, o gateway Java na frente dela, o Terraform do Azure e este site. As telas de empréstimo enviam requisições reais, e você acompanha cada uma pelo edge, pela validação do token, pelo host e pelo banco.',
+        'Uma API de empréstimo consignado em Spring Boot que roda no Azure Functions ou no AKS, atrás de um único gateway. O site desenha cada requisição que você envia com o tempo medido de cada etapa e acompanha o ciclo de vida inteiro da requisição dentro do Azure. As requisições são reais, não uma simulação: um gráfico interativo mostra cada uma de ponta a ponta.',
+      aboutBefore: 'Demonstração técnica de ',
+      author: { text: 'Kmads', href: 'https://github.com/kmadsdev' },
+      aboutAfter:
+        '. Três repositórios guardam a API de empréstimo (Spring Boot), o gateway Java na frente dela, o Terraform (Azure) e este site (React). As telas de empréstimo enviam requisições reais. Você acompanha cada uma pelo edge, pela validação do token, pelo host e pelo banco de dados.',
+      access: {
+        account: 'Para usar o fluxo do AKS você precisa criar uma conta. Cada conta tem três janelas gratuitas de 15\u00a0minutos para iniciar e testar o Engine.',
+        contactBefore: 'Para pedir mais janelas ou sugerir uma mudança na arquitetura, ',
+        contactLink: 'fale comigo aqui',
+        guestBefore: 'Visitantes sem conta só podem usar a ',
+        guestLink: { text: 'simulação rápida no host serverless', href: DOCS.accessLevels },
+      },
       sourceLabel: 'Código-fonte',
       repos: [
         { name: 'kmadsdev/consignado-api', href: 'https://github.com/kmadsdev/consignado-api' },
@@ -31,7 +40,7 @@ export const ptBR: typeof en = {
       primaryAction: 'Fazer uma simulação rápida',
       secondaryAction: 'Entrar para usar o host Kubernetes',
       signInNote:
-        'A simulação rápida não pede conta. O login usa o Microsoft Entra ID com um código de uso único enviado ao seu e-mail. Para criar a conta, na página da Microsoft selecione "No account? Create one" e depois "Sign up with email".',
+        'O login usa o Microsoft Entra ID com um código de uso único enviado ao seu e-mail. Para criar a conta, na página da Microsoft selecione "No account? Create one" e depois "Sign up with email".',
     },
 
     diagram: {
@@ -100,8 +109,8 @@ export const ptBR: typeof en = {
     },
 
     hosts: {
-      title: 'Dois hosts, um jar',
-      description: 'O mesmo build Spring Boot 3.5 roda nos dois, atrás do mesmo gateway e com o mesmo banco.',
+      title: 'Dois hosts',
+      description: 'O mesmo artefato de build, um JAR executável do Spring Boot 3.5, roda nos dois, atrás do mesmo gateway e com o mesmo banco de dados.',
       functions: {
         title: 'Azure Functions',
         subtitle: 'Host serverless',
@@ -124,17 +133,17 @@ export const ptBR: typeof en = {
           { label: 'Quem pode usar', value: 'Usuários logados, 3 janelas de 15 minutos' },
           { label: 'Cold start', value: '7 min 13 s', mono: true },
           { label: 'Janela com o cluster ligado', value: 'Pronta em menos de 2 s', mono: true },
-          { label: 'Tamanho', value: '1 nó Standard_D2as_v4, 2 a 3 pods' },
+          { label: 'Tamanho', value: '1 node Standard_D2as_v4, 2 a 3 pods' },
           { label: 'Rede', value: 'Load balancer interno, sem endereço público' },
         ],
         tradeOff:
-          'O nó custa US$ 0,104 por hora, cerca de US$ 76 num mês inteiro, mais que o orçamento todo. Por isso o cluster só roda durante as janelas, e o primeiro visitante espera ele iniciar.',
+          'O node custa US$ 0,104 por hora, cerca de US$ 76 num mês inteiro, mais que o orçamento todo. Por isso o cluster só roda durante as janelas, e o primeiro visitante espera ele iniciar.',
       },
       topics: [
         {
-          title: 'Por que o mesmo jar roda em dois hosts',
+          title: 'Por que o mesmo artefato de build roda em dois hosts',
           paragraphs: [
-            'Comparar Kubernetes e serverless só é justo quando os dois rodam o mesmo programa. No Azure Functions o jar roda como custom handler. O host do Functions inicia um runtime Java que eu gero com jlink e um arquivo CDS. Ele repassa cada requisição HTTP para o Spring Boot. O CI testa um artefato, e os dois hosts rodam esse artefato.',
+            'Comparar Kubernetes e serverless só é justo quando os dois rodam o mesmo programa. No Azure Functions o artefato de build roda como custom handler. O host do Functions inicia um runtime Java que eu gero com jlink e um arquivo CDS. Ele repassa cada requisição HTTP para o Spring Boot. O CI testa um artefato de build, e os dois hosts rodam esse artefato.',
             'O custo são dois caminhos de deploy para manter funcionando e um pacote de 129 MB cujo runtime Java só um build novo atualiza. O relay do outbox roda só no AKS, então um evento gravado no host serverless espera um pod ligado.',
             'Um banco escolheria um host por serviço a partir de dados de carga e custo, com um caminho de deploy só.',
           ],
@@ -145,8 +154,8 @@ export const ptBR: typeof en = {
           paragraphs: ['Medido do cluster parado até a primeira resposta da API:'],
           items: [
             'Início do control plane: 4 min 26 s',
-            'Nó pronto: 2 min 13 s',
-            'Início do Spring Boot e conexão com o banco: 26 s',
+            'Node pronto: 2 min 13 s',
+            'Início do Spring Boot e conexão com o banco de dados: 26 s',
             'Load balancer interno passa a mandar tráfego aos pods: 8 s',
           ],
           links: [
@@ -159,9 +168,9 @@ export const ptBR: typeof en = {
           paragraphs: [
             'O gateway mostra cada etapa da inicialização a partir de sinais reais:',
             'A janela abre quando essa chamada de readiness responde 200 e dura 15 minutos a partir daí.',
-            'Cada conta tem 3 janelas, e a janela só conta quando abre, então uma inicialização que falha não custa nada ao usuário. Posso mudar os dois números por conta. Somando todas as contas, abrem no máximo 12 janelas novas por dia. Uma janela custa cerca de US$ 0,04 de tempo de nó.',
+            'Cada conta tem 3 janelas, e a janela só conta quando abre, então uma inicialização que falha não custa nada ao usuário. Posso mudar os dois números por conta. Somando todas as contas, abrem no máximo 12 janelas novas por dia. Uma janela custa cerca de US$ 0,04 de tempo de node.',
             'Um timer roda a cada minuto. Quando nenhuma janela está iniciando ou aberta, o gateway para o cluster. Depois vem um cool-down de 15 minutos, como o Azure recomenda entre parar e iniciar. A role do gateway no Azure lê, inicia e para o cluster. Ela não tem permissão para alterar nem apagar o cluster.',
-            'Um banco manteria o cluster ligado, com autoscaling e capacidade reservada, porque a disponibilidade vale mais que o nó.',
+            'Um banco manteria o cluster ligado, com autoscaling e capacidade reservada, porque a disponibilidade vale mais que o node.',
           ],
           items: [
             'O power state do cluster no Azure Resource Manager',
@@ -187,7 +196,7 @@ export const ptBR: typeof en = {
       rows: [
         {
           level: 'Visitante',
-          serverless: 'Simulação rápida, sem banco',
+          serverless: 'Simulação rápida, sem banco de dados',
           kubernetes: 'Replay gravado, marcado como simulação',
           data: 'Snapshot mascarado, só leitura',
           limits: 'O que você digita fica no seu navegador',
@@ -204,7 +213,7 @@ export const ptBR: typeof en = {
           serverless: 'A API completa, a qualquer hora',
           kubernetes: 'Sem limite de janelas',
           data: 'Lê tudo, grava pelo fluxo do empréstimo',
-          limits: 'Páginas de admin: usuários, janelas, motor e orçamento',
+          limits: 'Páginas de admin: usuários, janelas, Engine e orçamento',
         },
       ],
     },
@@ -249,11 +258,11 @@ export const ptBR: typeof en = {
           title: 'Tempo de cada requisição',
           paragraphs: [
             'Cada resposta da API tem um header de tempo com estes valores:',
-            'Só números saem da API, nunca o texto do SQL ou dados. O gateway coloca esses números no trace como as etapas app e database. A simulação rápida não executa nenhum statement SQL, e o header dela mostra zero trabalho de banco em toda chamada.',
+            'Só números saem da API, nunca o texto do SQL ou dados. O gateway coloca esses números no trace como as etapas app e database. A simulação rápida não executa nenhum statement SQL, e o header dela mostra zero trabalho de banco de dados em toda chamada.',
           ],
           items: [
             'Tempo dentro da aplicação',
-            'Statements JDBC por tipo, e o tempo de banco',
+            'Statements JDBC por tipo, e o tempo de banco de dados',
             'Espera por uma conexão do pool',
             'A instância que respondeu',
           ],
@@ -285,15 +294,15 @@ export const ptBR: typeof en = {
         'Visitantes se cadastram com um código de uso único por e-mail e viram contas convidadas restritas no meu tenant do Entra ID.',
         'O Cloudflare Turnstile protege o formulário de contato e o de perfil.',
         'O gateway guarda endereços IP e fingerprints de dispositivo só como HMAC. Uma conta no mesmo dispositivo ou na mesma caixa de e-mail de outra conta espera a minha análise.',
-        'O orçamento mensal é de US$ 60. Em 100%, o gateway pausa o motor e para o cluster. O site e o host serverless continuam no ar.',
+        'O orçamento mensal é de US$ 60. Em 100%, o gateway pausa o Engine e para o cluster. O site e o host serverless continuam no ar.',
         'Uma revisão de segurança independente em 2026-11-17 não achou nenhum problema crítico ou alto. Corrigi os achados médios.',
       ],
       topics: [
         {
           title: 'O que o controle de orçamento para, e o que não para',
           paragraphs: [
-            'Em 50% e 80% dos US$ 60 eu recebo um e-mail. Em 100%, um action group do Azure chama um webhook do gateway, que pausa o motor e para o cluster. O nó ligado é o maior custo variável, e parar não apaga nada.',
-            'Um orçamento do Azure é um alerta, não um teto rígido. Ele dispara depois que o gasto é registrado, e os custos fixos de banco, registry, disco e IP público continuam. Um banco não para produção por alerta de orçamento. Ele define orçamento por time, com previsão e detecção de anomalias, e paga capacidade adiantado.',
+            'Em 50% e 80% dos US$ 60 eu recebo um e-mail. Em 100%, um action group do Azure chama um webhook do gateway, que pausa o Engine e para o cluster. O node ligado é o maior custo variável, e parar não apaga nada.',
+            'Um orçamento do Azure é um alerta, não um teto rígido. Ele dispara depois que o gasto é registrado, e os custos fixos de banco de dados, registry, disco e IP público continuam. Um banco não para produção por alerta de orçamento. Ele define orçamento por time, com previsão e detecção de anomalias, e paga capacidade adiantado.',
           ],
           links: [{ text: 'ADR 0012: controle de orçamento e limites contra abuso', href: DOCS.adr0012 }],
         },
@@ -315,10 +324,10 @@ export const ptBR: typeof en = {
       title: 'Regras dos dados',
       description: 'Todos os dados são sintéticos, e os dados compartilhados só crescem.',
       items: [
-        'O banco tem 4 convênios, 50 clientes, 60 simulações e 30 contratos, todos sintéticos.',
+        'O banco de dados tem 4 convênios, 50 clientes, 60 simulações e 30 contratos, todos sintéticos.',
         'A API não tem DELETE. A única alteração permitida é a renda de um cliente, e a margem consignável protege essa alteração.',
-        'Visitantes nunca chegam ao banco. Recebem a simulação rápida e um snapshot mascarado que o gateway atualiza a cada 10 minutos.',
-        'O CPF sai mascarado em toda resposta. O banco guarda o CPF em texto puro. Um sistema real criptografaria ou tokenizaria.',
+        'Visitantes nunca chegam ao banco de dados. Recebem a simulação rápida e um snapshot mascarado que o gateway atualiza a cada 10 minutos.',
+        'O CPF sai mascarado em toda resposta. O banco de dados guarda o CPF em texto puro. Um sistema real criptografaria ou tokenizaria.',
       ],
     },
 
@@ -330,7 +339,7 @@ export const ptBR: typeof en = {
         'consignado-serverless: o gateway, com 156 testes, e o pacote do host serverless.',
         'consignado-front: este site, gerado e copiado para o Blob Storage pelo GitHub Actions.',
         'O Terraform descreve todos os recursos do Azure. O state remoto fica numa storage account que só aceita login pelo Entra ID.',
-        'O Inspetor de requisições liga cada requisição ao commit da imagem que respondeu.',
+        'O Request Inspector liga cada requisição ao commit da imagem que respondeu.',
       ],
       links: [
         { text: 'README do Terraform', href: DOCS.terraform },
@@ -360,7 +369,7 @@ export const ptBR: typeof en = {
           links: [{ text: 'ADR 0011: cadastro no tenant corporativo', href: DOCS.adr0011 }],
         },
         {
-          title: 'Banco: North Central US, com endpoint público',
+          title: 'Banco de dados: North Central US, com endpoint público',
           paragraphs: [
             'Belgium Central não tinha capacidade para o tamanho B1ms, então o servidor PostgreSQL 16 ficou em North Central US. Os dois hosts estão em Belgium Central. Cada statement atravessa da Europa para os EUA. Ativar um contrato grava muitas linhas e leva cerca de 4,5 s.',
             'O endpoint é público, com TLS e a regra de firewall "Azure services". Escolhi isso no lugar de um private endpoint para economizar cerca de US$ 8 por mês. A senha tem 28 caracteres aleatórios e existe só no Key Vault.',
@@ -376,7 +385,7 @@ export const ptBR: typeof en = {
       description: 'Lacunas que eu conheço e não fechei.',
       items: [
         'O plano gratuito da Cloudflare não tem conjunto de regras WAF gerenciado. O edge tem 3 regras próprias, entre elas o rate limit.',
-        'O endpoint do banco é público. TLS, uma regra de firewall e uma senha no Key Vault protegem o banco.',
+        'O endpoint do banco de dados é público. TLS, uma regra de firewall e uma senha no Key Vault protegem o banco de dados.',
         'As contas de visitantes ficam no mesmo tenant do Entra ID que a assinatura do Azure.',
         'Os números do Azure Monitor chegam com cerca de 2 minutos de atraso.',
         'Quem chega durante o cool-down espera até 15 minutos pelo host Kubernetes.',
@@ -539,7 +548,7 @@ export const ptBR: typeof en = {
       {
         title: '2. Nenhum dado pessoal real',
         paragraphs: [
-          'Não informe dados pessoais reais de ninguém nas telas de empréstimo: nada de nome, CPF, renda ou empregador reais. Use o gerador aleatório da aplicação. Outros usuários cadastrados podem ver os dados do banco compartilhado.',
+          'Não informe dados pessoais reais de ninguém nas telas de empréstimo: nada de nome, CPF, renda ou empregador reais. Use o gerador aleatório da aplicação. Outros usuários cadastrados podem ver os dados do banco de dados compartilhado.',
         ],
       },
       {
