@@ -242,7 +242,7 @@ function FlowNodeView({ p, model, state, status, dbDetail, edgeNetworkMs }: { p:
         <ul className="fl-pop-list">
           <li><span>{live.kind}</span><span className="mono">{F.live[live.state]}</span></li>
           <li><span className="mono">{live.name}</span><span className="mono">{live.region ?? ''}</span></li>
-          {live.metrics.map((m) => <li key={m.key}><span>{m.label}</span><span className="mono">{metricText(m, '-', decimal)}</span></li>)}
+          {live.metrics.map((m) => <li key={m.key}><span>{F.metricLabel[m.key] ?? m.label}</span><span className="mono">{metricText(m, '-', decimal)}</span></li>)}
         </ul>
       )}
       {isDb && dbDetail}

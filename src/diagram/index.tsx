@@ -10,13 +10,14 @@ import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator, { type StatusIndicatorProps } from '@cloudscape-design/components/status-indicator'
 import type { HostKind, LifecycleEvent, StageStatus } from '../api/types'
 import { anchor, getView, iconSize, inferHost, STAGES_OF, SVC_W, type EdgeDef, type EdgeKind, type GroupDef, type Pt, type SvcDef, type ViewDef } from './model'
+import { localizeDetail } from '../api/details'
 import { LOCALE } from '../i18n/lang.ts'
 import { STAGE_NAMES, UI } from './strings'
 import './diagram.css'
 
 export { demoAksStartEvents, useDemoTimeline } from './demo'
 export type { DemoTimeline, DemoTimelineOptions } from './demo'
-export { STAGE_NAMES } from './strings'
+export { STAGE_NAMES, stageLine } from './strings'
 
 export type DiagramView = 'overview' | 'aks' | 'functions'
 export interface ArchitectureDiagramProps {
@@ -511,7 +512,7 @@ export function LifecycleTimeline(props: LifecycleTimelineProps) {
               <div className="dg-tl-meta">
                 <Box variant="code" fontSize="body-s" color="text-body-secondary">{clock.format(new Date(s.ts))}</Box>
                 {s.ms !== undefined && s.status !== 'active' && <Box variant="code" fontSize="body-s">{formatMs(s.ms)}</Box>}
-                {s.detail && <Box variant="small" color="text-body-secondary">{s.detail}</Box>}
+                {s.detail && <Box variant="small" color="text-body-secondary"><span className="mono">{localizeDetail(s.detail)}</span></Box>}
               </div>
             )}
           </div>

@@ -30,6 +30,25 @@ const STAGE_NAMES_EN: Record<string, string> = {
   response: 'Response returns to the browser',
 }
 
+/** The main line while a start stage runs: built from the stage id, not from the gateway text. */
+const STAGE_WAIT_EN: Record<string, string> = {
+  request: 'Browser sends the request',
+  gateway: 'Gateway accepts the request',
+  quota: 'Gateway checks the window and the budget',
+  keyvault: 'Gateway reads its secrets',
+  'arm-start': 'Azure Resource Manager receives the start order',
+  'control-plane': 'Azure starts the Kubernetes API server',
+  node: 'The node VM boots. Waiting for Ready',
+  'image-pull': 'The node pulls the API image',
+  'secrets-mount': 'The CSI driver mounts the database password',
+  'container-start': 'Spring Boot starts in the pods',
+  database: 'Spring Boot starts and connects to PostgreSQL',
+  readiness: 'Waiting for the pods to become Ready behind the Service',
+  'load-balancer': 'Waiting for the internal load balancer to pass a call',
+  'first-response': 'Waiting for the first API call to answer',
+  'cluster-stop': 'Gateway stops the cluster',
+}
+
 const N_EN = {
   user: { label: 'User', sub: 'browser', what: 'Your browser sends the request and draws the answer. It also measures the total time.' },
   frontdoor: { label: 'Cloudflare edge', sub: 'TLS, cache, rate limit', what: 'The Cloudflare Worker ends TLS, serves static files from its cache, applies the firewall rules and the rate limit, and forwards API calls to the gateway. I planned Azure Front Door, but Azure refuses it on a student subscription.' },
@@ -159,6 +178,14 @@ const DEMO_DETAIL_EN: Record<string, string> = {
   warmSkip: 'warm instance, stage skipped',
 }
 
-export const en = { STAGE_NAMES: STAGE_NAMES_EN, N: N_EN as Record<keyof typeof N_EN, NodeText>, G: G_EN, E: E_EN, UI: UI_EN, DEMO_DETAIL: DEMO_DETAIL_EN }
+export const en = { STAGE_NAMES: STAGE_NAMES_EN, STAGE_WAIT: STAGE_WAIT_EN, N: N_EN as Record<keyof typeof N_EN, NodeText>, G: G_EN, E: E_EN, UI: UI_EN, DEMO_DETAIL: DEMO_DETAIL_EN }
 const active = pick(en, ptBR)
-export const { STAGE_NAMES, N, G, E, UI, DEMO_DETAIL } = active
+export const { STAGE_NAMES, STAGE_WAIT, N, G, E, UI, DEMO_DETAIL } = active
+
+/** The frontend's own line for a stage id and its state (the gateway's detail is a secondary, raw line). */
+export function stageLine(stage: string, status: 'pending' | 'active' | 'done' | 'error'): string {
+  const name = STAGE_NAMES[stage] ?? stage
+  if (status === 'active') return STAGE_WAIT[stage] ?? name
+  if (status === 'error') return `${name}: ${UI.statusError}`
+  return name
+}

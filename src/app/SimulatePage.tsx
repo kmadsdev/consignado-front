@@ -24,7 +24,7 @@ import { bringIntoView, CallWait } from './CallWait'
 import { Mono } from './common'
 import { Explain } from './Explain'
 import { DataTable, type Column } from './DataTable'
-import { brl, brlRound, dateTime, duration, percent, relativeTime } from './format'
+import { brl, brlRound, dateTime, decimal, duration, percent, relativeTime } from './format'
 import { RequestFlow, saveRecord, type FlowRecord } from './RequestFlow'
 import { T } from './strings'
 
@@ -42,7 +42,8 @@ export function SimulatePage() {
   const { me, signIn } = useAuth()
   const [principal, setPrincipal] = useState('12000')
   const [months, setMonths] = useState('48')
-  const [rate, setRate] = useState('1.66')
+  // A text field: a number field shows the decimal mark of the browser, not of the page language (F16).
+  const [rate, setRate] = useState(() => decimal(1.66, 2))
   const [income, setIncome] = useState('4200')
   const [touched, setTouched] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -124,7 +125,7 @@ export function SimulatePage() {
                     <Input value={months} onChange={(e) => setMonths(e.detail.value)} type="number" inputMode="numeric" />
                   </FormField>
                   <FormField label={T.guest.rate} description={T.guest.rateHint} errorText={touched ? errors.rate : ''}>
-                    <Input value={rate} onChange={(e) => setRate(e.detail.value)} type="number" inputMode="decimal" step={0.01} />
+                    <Input value={rate} onChange={(e) => setRate(e.detail.value)} inputMode="decimal" />
                   </FormField>
                   <FormField label={T.guest.income} description={T.common.brlHint} errorText={touched ? errors.income : ''}>
                     <Input value={income} onChange={(e) => setIncome(e.detail.value)} type="number" inputMode="decimal" />

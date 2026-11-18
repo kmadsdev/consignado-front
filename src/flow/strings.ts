@@ -28,6 +28,28 @@ export const en = {
     database: 'PostgreSQL runs the statements',
     response: 'Response returns to the browser',
   } as Record<string, string>,
+  /** The main text of the detail column, per stage id. The gateway's own detail is the second, raw line. */
+  stageDetail: {
+    request: 'The browser sent the request.',
+    edge: 'Cloudflare applied the firewall rules and the rate limit.',
+    gateway: 'Gateway work without the calls below.',
+    identity: 'The Entra ID token is valid.',
+    quota: 'The access window is open.',
+    keyvault: 'Secrets from the cache or from Key Vault.',
+    'function-cold-start': 'Azure gave an instance and started the JVM, measured together.',
+    'jvm-start': 'Part of the cold start above.',
+    'functions-host': 'Network and Functions host, both ways.',
+    'load-balancer': 'Network, load balancer and Service, both ways.',
+    app: 'Time in Spring Boot without the database time.',
+    database: 'The JDBC statements of this request.',
+    response: 'The answer came back with its HTTP status.',
+  } as Record<string, string>,
+  stageFailed: 'This stage failed.',
+  /** Metric names by the stable key of the status answer (the gateway's label is English). */
+  metricLabel: {
+    requests: 'Requests', errors: 'Failed requests', 'latency-avg': 'Average response time', 'latency-p95': 'Response time p95', cpu: 'CPU',
+    memory: 'Memory', connections: 'Connections', restarts: 'Restarts', replicas: 'Pods ready', instances: 'Instances',
+  } as Record<string, string>,
   node: {
     browser: 'Browser', edge: 'Cloudflare edge', gateway: 'Gateway', identity: 'Entra ID', keyvault: 'Key Vault',
     fnhost: 'Functions host', app: 'Spring Boot API', lb: 'Load balancer', service: 'Service', pod: 'Pod', database: 'PostgreSQL',

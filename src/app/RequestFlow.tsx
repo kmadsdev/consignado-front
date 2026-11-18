@@ -4,6 +4,7 @@ import SpaceBetween from '@cloudscape-design/components/space-between'
 import StatusIndicator, { type StatusIndicatorProps } from '@cloudscape-design/components/status-indicator'
 import Table from '@cloudscape-design/components/table'
 import type { HostKind, Metric, ServiceState, ServiceStatus } from '../api/types'
+import { DetailText } from '../flow/DetailText'
 import { InlineRecord } from '../flow/InlineRecord'
 import { RequestFlowView } from '../flow/RequestView'
 import { requestStore, type NewRecord } from '../flow/session'
@@ -35,10 +36,10 @@ function keyMetrics(s: ServiceStatus, max = 2): string {
   const out: string[] = []
   const lat = by('latency-avg'), err = by('errors'), cpu = by('cpu'), pods = by('replicas'), conn = by('connections'), inst = by('instances')
   if (lat) out.push(T.flow.avg(metricValue(lat)))
-  if (err) out.push(T.flow.errors(err.value!))
-  if (pods) out.push(T.flow.pods(pods.value!))
+  if (err) out.push(T.flow.errors(metricValue(err)))
+  if (pods) out.push(T.flow.pods(metricValue(pods)))
   if (cpu && out.length < 2) out.push(T.flow.cpu(metricValue(cpu)))
-  if (conn && out.length < 2) out.push(T.flow.connections(conn.value!))
+  if (conn && out.length < 2) out.push(T.flow.connections(metricValue(conn)))
   if (inst && out.length < 2) out.push(T.flow.instances(inst.value!))
   return out.slice(0, max).join(' · ')
 }
@@ -79,7 +80,7 @@ export function RequestFlow({ host, record }: { host: HostKind; record: FlowReco
             { id: 'name', header: F.colName, cell: (s) => <Mono>{s.name}</Mono> },
             { id: 'kind', header: F.colKind, cell: (s) => s.kind },
             { id: 'region', header: F.colRegion, cell: (s) => s.region ? <Mono>{s.region}</Mono> : '-' },
-            { id: 'metrics', header: F.colMetrics, cell: (s) => keyMetrics(s) || <Box color="text-body-secondary">{s.detail}</Box> },
+            { id: 'metrics', header: F.colMetrics, cell: (s) => keyMetrics(s) || <DetailText raw={s.detail} /> },
             { id: 'source', header: F.colSource, cell: (s) => s.source.map((x) => F.source[x]).join(', ') },
           ]}
         />
