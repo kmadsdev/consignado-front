@@ -23,6 +23,8 @@ const CASES = [
   ['internal load balancer to pod, and the way back', 'load balancer interno até o pod, ida e volta'],
   ['internal load balancer to pod', 'load balancer interno até o pod'],
   ['internal load balancer passed the call', 'o load balancer interno passou a chamada'],
+  ['cold block: instance allocation and JVM start, measured together', 'bloco do cold start: alocação da instância e início da JVM, medidos juntos'],
+  ['inside the cold block of function-cold-start', 'dentro do bloco de cold start de function-cold-start'],
   ['cached', 'do cache'],
   ['read from Key Vault', 'lido do Key Vault'],
   ['not needed for this host', 'não é necessário para este host'],
