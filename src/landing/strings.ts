@@ -55,7 +55,7 @@ const landingEn = {
     tagline:
       'A payroll-loan API that runs on Azure Functions and on AKS, behind one gateway. The site draws each request you send, with the measured time of every step.',
     about:
-      'A technical demo by Kaique Souza, backend engineer. I wrote the loan API, the Java gateway in front of it, the Terraform for Azure and this site. The loan screens send real requests. You can follow each one through the edge, the token check, the host and the database.',
+      'A technical demo by Kaique Souza, backend engineer. The three repositories below hold the loan API, the Java gateway in front of it, the Terraform for Azure and this site. The loan screens send real requests. You can follow each one through the edge, the token check, the host and the database.',
     sourceLabel: 'Source code',
     repos: [
       { name: 'kmadsdev/consignado-api', href: 'https://github.com/kmadsdev/consignado-api' },
