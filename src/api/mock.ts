@@ -7,7 +7,7 @@ import type {
 } from './types'
 import { ApiError } from './errors'
 import { cpfForApi, formatCpf, maskCpf, type PageInfo } from './map'
-import { WINDOW_COST_USD } from '../app/cost.ts'
+import { BRL_PER_USD, BUDGET_BRL, WINDOW_COST_USD } from '../app/cost.ts'
 
 // ---- types that the contract does not have yet (listed in the report) ---------
 export type PersonaId = 'guest' | 'recruiter' | 'recruiter-new' | 'recruiter-held' | 'recruiter-spent' | 'admin'
@@ -120,7 +120,7 @@ interface Db {
   sessions: SessionRec[]
   paused: boolean
   pausedReason?: 'budget' | 'admin'
-  budget: { limitUsd: number; spentUsd: number }
+  budget: { limit: number; spent: number; currency: string }
   contacts: ContactRequest[]
   activity: ActivityItem[]
   functionsLastAt: number
@@ -224,8 +224,8 @@ function seed(): Db {
     host: i % 4 === 2 ? 'aks' : 'functions',
   }))
   return {
-    v: 3, seq: 100, agreements, customers, simulations, contracts, users, sessions, paused: false,
-    budget: { limitUsd: 60, spentUsd: 23.4 }, contacts, activity, functionsLastAt: 0, last: {},
+    v: 4, seq: 100, agreements, customers, simulations, contracts, users, sessions, paused: false,
+    budget: { limit: BUDGET_BRL, spent: 128.7, currency: 'BRL' }, contacts, activity, functionsLastAt: 0, last: {},
   }
 }
 
@@ -234,7 +234,7 @@ function load(): Db {
     const raw = sessionStorage.getItem(DB_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Db
-      if (parsed.v === 3) return parsed
+      if (parsed.v === 4) return parsed
     }
   } catch { /* storage is not available: use memory only */ }
   return seed()
@@ -532,7 +532,7 @@ export async function startSession(): Promise<Session> {
   const rec: SessionRec = { id, userId: u.id, requestedAt: Date.now(), requestCount: 0, coldStartMs: REAL_COLD_START_MS, windowMs: (u.windowMinutes ?? WINDOW_MINUTES) * 60_000 }
   db.sessions.unshift(rec)
   u.windowsUsed += 1
-  db.budget.spentUsd = round2(db.budget.spentUsd + WINDOW_COST_USD)
+  db.budget.spent = round2(db.budget.spent + WINDOW_COST_USD * BRL_PER_USD)
   persist()
   return viewSession(rec)
 }

@@ -26,11 +26,12 @@ import {
 import type { AdminState, AdminUser, ContactRequest } from '../api/types'
 import { CopyId, EngineStatus, Gate, Mono } from '../app/common'
 import { DataTable, type Column } from '../app/DataTable'
-import { dateTime, duration, relativeTime, usd } from '../app/format'
+import { dateTime, duration, moneyIn, relativeTime } from '../app/format'
 import { useShell } from '../shell/context'
 import { Explain } from '../app/Explain'
 import { A } from './strings'
-import { WINDOW_COST_USD } from '../app/cost'
+import { windowCostIn } from '../app/cost'
+import { toBudget } from '../api/map'
 
 
 function Admin() {
@@ -169,11 +170,14 @@ function Admin() {
     { id: 'requests', header: A.sessions.colRequests, cell: (s) => <Mono>{s.requests ?? s.requestCount}</Mono>, sortingField: 'requestCount' },
   ]
 
-  const budget = state?.budget
-  const percent = budget ? Math.min(100, (budget.spentUsd / budget.limitUsd) * 100) : 0
-  const leftUsd = budget ? Math.max(0, budget.limitUsd - budget.spentUsd) : 0
+  // Amounts in the currency that the gateway sends (the billing currency, BRL); never assumed to be US dollars.
+  const budget = state ? toBudget(state.budget) : null
+  const money = (n: number) => (budget ? moneyIn(n, budget.currency) : '')
+  const percent = budget && budget.limit > 0 ? Math.min(100, (budget.spent / budget.limit) * 100) : 0
+  const left = budget ? Math.max(0, budget.limit - budget.spent) : 0
+  const windowCost = budget ? windowCostIn(budget.currency) : null
   const mark = (at: number, text: string) => ({
-    label: `${at}% (${budget ? usd((budget.limitUsd * at) / 100) : ''})`,
+    label: `${at}% (${budget ? money((budget.limit * at) / 100) : ''})`,
     value: (
       <SpaceBetween size="xxs">
         <StatusIndicator type={percent >= at ? (at === 100 ? 'error' : 'warning') : 'pending'}>{percent >= at ? A.engine.reached : A.engine.notReached}</StatusIndicator>
@@ -274,7 +278,7 @@ function Admin() {
                       <ProgressBar
                         value={percent}
                         label={A.engine.spent}
-                        description={A.engine.spentOf(usd(state.budget.spentUsd), usd(state.budget.limitUsd))}
+                        description={budget ? A.engine.spentOf(money(budget.spent), money(budget.limit)) : ''}
                         additionalInfo={A.engine.rule}
                         status={percent >= 100 ? 'error' : 'in-progress'}
                         resultText={A.engine.mark100}
@@ -283,8 +287,8 @@ function Admin() {
                       <KeyValuePairs
                         columns={2}
                         items={[
-                          { label: A.engine.left, value: <Mono>{usd(leftUsd)}</Mono> },
-                          { label: A.engine.windowsLeft, value: <Mono>{Math.floor(leftUsd / WINDOW_COST_USD)}</Mono> },
+                          { label: A.engine.left, value: <Mono>{money(left)}</Mono> },
+                          { label: A.engine.windowsLeft, value: <Mono>{windowCost ? Math.floor(left / windowCost) : '-'}</Mono> },
                         ]}
                       />
                     </SpaceBetween>
